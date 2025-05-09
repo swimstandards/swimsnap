@@ -7,4 +7,4 @@ upload/*
 # Allow folders to exist
 !raw/
 !meta/
-!upload/
+!upload/vendor/
