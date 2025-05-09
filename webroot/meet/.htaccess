@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# If the file or directory exists, don't rewrite
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rewrite /standards/slug → /standards/view.php?slug=slug
+RewriteRule ^([a-z0-9\-]+)$ view.php?slug=$1 [L,QSA]

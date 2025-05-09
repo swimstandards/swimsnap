@@ -1,0 +1,10 @@
+.env
+# Ignore actual runtime data
+raw/*
+meta/*
+upload/*
+
+# Allow folders to exist
+!raw/
+!meta/
+!upload/
