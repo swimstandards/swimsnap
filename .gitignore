@@ -1,4 +1,15 @@
+# Environment files
 .env
+.env.local
+.env.*
+
+# IDE/editor files
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+
 # Ignore actual runtime data
 raw/*
 meta/*
@@ -8,4 +19,12 @@ upload/*
 !raw/
 !meta/
 !upload/vendor/
+
+
+# macOS system files
 .DS_Store
+
+# Composer dependencies
+/vendor/
+
+
