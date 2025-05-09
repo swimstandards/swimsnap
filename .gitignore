@@ -8,3 +8,4 @@ upload/*
 !raw/
 !meta/
 !upload/vendor/
+.DS_Store
