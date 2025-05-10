@@ -40,7 +40,7 @@ function handle_text_upload(string $content): array
 
   // Type to folder mapping (for raw and URL)
   $type_to_folder = [
-    'meet_programs' => 'meet-programs',
+    'meet_programs' => 'heat-sheets',
     'psych_sheets' => 'psych-sheets',
     'results'       => 'results',
     'standards'     => 'standards', // handled by upload-file-handler.php
