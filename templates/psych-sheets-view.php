@@ -227,7 +227,7 @@
 
     showLoading();
     setTimeout(() => {
-      buildAccordion(parsedEvents);
+      buildAccordion(filteredEvents);
     }, 50);
   }
 
