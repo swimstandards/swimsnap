@@ -90,6 +90,24 @@ Make sure you have the following installed:
 
 ---
 
+## 💻 Recommended Editor Setup
+
+We recommend using **Visual Studio Code (VSCode)** for consistent formatting and development.
+
+### 🔌 Required Extensions
+
+- [Prettier – Code Formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+- [PHP Intelephense](https://marketplace.visualstudio.com/items?itemName=bmewburn.vscode-intelephense-client)
+
+### ⚙️ VSCode Settings
+
+See `.vscode/settings.json` in the project for recommended editor configuration.
+
+### ✨ Prettier Settings
+
+See `.prettierrc` in the project for recommended editor configuration.
+
+
 ### 🔧 Installation
 
 1. **Clone the repository:**
@@ -125,8 +143,8 @@ Make sure you have the following installed:
 
    ```apache
    <Directory "/path/to/SwimSnap/webroot">
-       AllowOverride All
-       Require all granted
+      AllowOverride All
+      Require all granted
    </Directory>
    ```
 
