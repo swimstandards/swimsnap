@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../lib/mongodb.php'; // MongoDBLibrary
 $slug = basename($_GET['slug'] ?? '');
 
 $meet_info = null;
-$raw_path = RAW_DIR . "meet-programs/{$slug}.txt";
+$raw_path = RAW_DIR . "heat-sheets/{$slug}.txt";
 
 // First: Try to load metadata from MongoDB
 if (!empty($_ENV['MONGODB_URI'])) {

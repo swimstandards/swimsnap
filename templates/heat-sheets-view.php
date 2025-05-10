@@ -3,7 +3,7 @@
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">
     <li class="breadcrumb-item"><a href="<?= $base_url ?>/">Home</a></li>
-    <li class="breadcrumb-item"><a href="<?= $base_url ?>/meet-programs">Heat Sheets</a></li>
+    <li class="breadcrumb-item"><a href="<?= $base_url ?>/heat-sheets">Heat Sheets</a></li>
     <li class="breadcrumb-item active" aria-current="page">
       <?= htmlspecialchars(shorten_title($meet_info['sheet_name'] ?? $meet_info['meet_name'])) ?>
     </li>

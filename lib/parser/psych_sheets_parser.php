@@ -85,7 +85,7 @@ function parse_relay_seed($line)
 function parse_swimmer_full_team($line)
 {
     // e.g. 1 Young, Sara 12 Rockville Montgo-PV 53.35
-    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+(.+?-[A-Z]{2})\s+([\d:.]+[YLS]?)(?:\s+(.*))?$/', $line, $m)) {
+    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+(.+?-[A-Z]{2})\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})[YLS]?)(?:\s+(.*))?$/', $line, $m)) {
         $seed_time = $m[5];
         $note = isset($m[6]) ? trim($m[6]) : "";
         if ($note) {
@@ -105,7 +105,7 @@ function parse_swimmer_full_team($line)
 function parse_swimmer_abbr_team($line)
 {
     // e.g. 6 Herrera, Sienna 12 LCAC-GA 54.57
-    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+([\d:.]+[YLS]?)(?:\s+(.*))?$/', $line, $m)) {
+    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})[YLS]?)(?:\s+(.*))?$/', $line, $m)) {
         $seed_time = $m[5];
         $note = isset($m[6]) ? trim($m[6]) : "";
         if ($note) {

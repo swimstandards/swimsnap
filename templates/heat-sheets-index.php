@@ -18,7 +18,7 @@
       <div class="card h-100 shadow-sm">
         <div class="card-body d-flex flex-column">
           <h5 class="card-title mb-1">
-            <a href="<?= $base_url ?>/meet-programs/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-dark">
+            <a href="<?= $base_url ?>/heat-sheets/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-dark">
               <?= htmlspecialchars($m['sheet_name']) ?>
             </a>
           </h5>

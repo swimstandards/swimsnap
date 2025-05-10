@@ -25,7 +25,7 @@ SwimSnap powers [swimsnap.com](https://swimsnap.com), but the code is open so th
 webroot/              → Public-facing app
   ├── index.php
   ├── events/ 
-  ├── meet-programs/
+  ├── heat-sheets/
   ├── psych-sheets/
   ├── results/
   ├── css/
