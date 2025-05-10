@@ -68,7 +68,8 @@ function parse_relay_seed($line)
 {
     if (preg_match('/^(\d+)\s+(.+?)\s+([A-Z])\s+([\d:.]+)(?:\s+(.*))?$/', $line, $m)) {
         $seed_time = $m[4];
-        $note = isset($m[5]) ? trim($m[5]) : "";
+        // empty of not letter, then skip note
+        $note = (isset($m[5]) && preg_match('/[A-Za-z]/', $m[5])) ? trim($m[5]) : "";
         if ($note) {
             $seed_time .= "(" . $note . ")";
         }
@@ -85,7 +86,7 @@ function parse_relay_seed($line)
 function parse_swimmer_full_team($line)
 {
     // e.g. 1 Young, Sara 12 Rockville Montgo-PV 53.35
-    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+(.+?-[A-Z]{2})\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})[YLS]?)(?:\s+(.*))?$/', $line, $m)) {
+    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+(.+?-[A-Z]{2})\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})(?:[YLS]?))(?:\s+(.*))?$/', $line, $m)) {
         $seed_time = $m[5];
         $note = isset($m[6]) ? trim($m[6]) : "";
         if ($note) {
@@ -105,7 +106,7 @@ function parse_swimmer_full_team($line)
 function parse_swimmer_abbr_team($line)
 {
     // e.g. 6 Herrera, Sienna 12 LCAC-GA 54.57
-    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})[YLS]?)(?:\s+(.*))?$/', $line, $m)) {
+    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})(?:[YLS]?))(?:\s+(.*))?$/', $line, $m)) {
         $seed_time = $m[5];
         $note = isset($m[6]) ? trim($m[6]) : "";
         if ($note) {
@@ -125,7 +126,8 @@ function parse_swimmer_abbr_team($line)
 function parse_swimmer_gender_age($line)
 {
     // e.g. 1 Cahill, Theo A M10 YORK-PV 2:14.23Y _____
-    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+([MW]\d{1,2})\s+([A-Z0-9\-]+)\s+([\d:.]+[YLS]?)(?:\s+(.*))?$/', $line, $m)) {
+    // e.g. 1 Bartlett, Rio A W10 NCAPB-PV NTY
+    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+([MW]\d{1,2})\s+([A-Z0-9\-]+)\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})(?:[YLS]?))(?:\s+(.*))?$/', $line, $m)) {
         $seed_time = $m[5];
         $note = isset($m[6]) ? trim($m[6]) : "";
         if ($note) {
