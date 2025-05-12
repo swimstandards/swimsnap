@@ -21,7 +21,7 @@
 </p>
 
 <?php
-$grouped = ['events' => [], 'psych_sheets' => [], 'meet_programs' => [], 'results' => []];
+$grouped = ['events' => [], 'psych_sheets' => [], 'heat_sheets' => [], 'results' => []];
 foreach ($meet_docs as $doc) {
   if (isset($grouped[$doc['type']])) {
     $grouped[$doc['type']][] = $doc;
@@ -71,7 +71,7 @@ function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not availa
   $icons = [
     'events' => 'calendar3',
     'psych_sheet' => 'people-fill',
-    'meet_program' => 'layout-three-columns',
+    'heat_sheet' => 'layout-three-columns',
     'result' => 'clipboard-check'
   ];
 
@@ -126,6 +126,6 @@ function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not availa
 <?php
 renderSection('Event Schedule', 'events', $grouped['events'], $base_url);
 renderSection('Psych Sheet', 'psych_sheets', $grouped['psych_sheets'], $base_url);
-renderSection('Heat Sheets', 'meet_programs', $grouped['meet_programs'], $base_url);
+renderSection('Heat Sheets', 'heat_sheets', $grouped['heat_sheets'], $base_url);
 renderSection('Results', 'results', $grouped['results'], $base_url);
 ?>
