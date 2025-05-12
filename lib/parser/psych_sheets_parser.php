@@ -64,9 +64,28 @@ function parse_swimmer_line_with_note($line)
     return null;
 }
 
+/**
+ * Matches relay seed line using:
+ *
+ *     /^
+ *         (\d+)                      # (1) Rank
+ *         \s+(.+?)                   # (2) Team name (non-greedy, can include spaces)
+ *         \s+([A-Z])                 # (3) Relay letter (A/B/etc.)
+ *         \s+(NT|(?:\d{1,2}:)?\d{1,2}\.\d{2}[YLS]?)  # (4) Time or NT with optional course suffix
+ *         (?:\s+(.*))?               # (5) Optional note (e.g., *)
+ *     $/x
+ *
+ * Captures rank, team, relay letter, time, and optional note.
+ * e.g.:
+ * 12 Occoquan Swimmin A 4:41.05
+ * 13 Arlington Aquati B 3:58.40Y
+ * 
+ */
+
 function parse_relay_seed($line)
 {
-    if (preg_match('/^(\d+)\s+(.+?)\s+([A-Z])\s+([\d:.]+)(?:\s+(.*))?$/', $line, $m)) {
+    $relayPattern = '/^(\d+)\s+(.+?)\s+([A-Z])\s+(NT|(?:\d{1,2}:)?\d{1,2}\.\d{2}[YLS]?)(?:\s+(.*))?$/';
+    if (preg_match($relayPattern, $line, $m)) {
         $seed_time = $m[4];
         // empty of not letter, then skip note
         $note = (isset($m[5]) && preg_match('/[A-Za-z]/', $m[5])) ? trim($m[5]) : "";
@@ -83,10 +102,26 @@ function parse_relay_seed($line)
     return null;
 }
 
+/**
+ * Regex pattern to match psych sheet swimmer lines with full team names.
+ *
+ * Matches lines like:
+ *   1 Vanyo, Sofie 16 Atlantic Coast A 2:18.33
+ *   1 Young, Sara 12 Rockville Montgo-PV 53.35
+ *
+ * Explanation:
+ *   (1) (\d+)                      → Rank number at line start
+ *   (2) ([^,]+,\s+.+?)             → Full swimmer name (Last, First ...)
+ *   (3) (\d{1,2})                  → Age
+ *   (4) (.+?)                      → Team name (may or may not include -LSC)
+ *   (5) ((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})(?:[YLS]?)) → Seed time or "NT", optional YLS
+ *   (6) (?:\s+(.*))?               → Optional trailing note (e.g., "*", "B")
+ */
 function parse_swimmer_full_team($line)
 {
-    // e.g. 1 Young, Sara 12 Rockville Montgo-PV 53.35
-    if (preg_match('/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+(.+?-[A-Z]{2})\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})(?:[YLS]?))(?:\s+(.*))?$/', $line, $m)) {
+    $pattern = '/^(\d+)\s+([^,]+,\s+.+?)\s+(\d{1,2})\s+(.+?)\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})(?:[YLS]?))(?:\s+(.*))?$/';
+
+    if (preg_match($pattern, $line, $m)) {
         $seed_time = $m[5];
         $note = isset($m[6]) ? trim($m[6]) : "";
         if ($note) {
