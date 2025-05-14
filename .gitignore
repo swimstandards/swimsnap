@@ -18,7 +18,7 @@ upload/*
 # Allow folders to exist
 !raw/
 !meta/
-!upload/vendor/
+!upload/.gitkeep
 
 
 # macOS system files
