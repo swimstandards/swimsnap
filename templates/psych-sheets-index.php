@@ -24,7 +24,7 @@
             </a>
           </h5>
           <p class="card-text mb-1"><i class="bi bi-calendar-event me-1"></i><strong>Date:</strong>
-            <?= $m['start_date'] ?> to <?= $m['end_date'] ?>
+            <?= date('m/d/Y', strtotime($m['start_date'])) ?> to <?= date('m/d/Y', strtotime($m['end_date'])) ?><br>
           </p>
           <?php if (!empty($m['organization'])): ?>
             <p class="card-text mb-1"><i class="bi bi-building me-1"></i><strong>Org:</strong> <?= htmlspecialchars($m['organization']) ?></p>

@@ -43,4 +43,8 @@ if (!empty($_ENV['MONGODB_URI'])) {
   }
 }
 
+
+// Sort by start_date descending
+usort($meets, fn($a, $b) => ($b['meet_start_date'] ?? '') <=> ($a['meet_start_date'] ?? ''));
+
 echo $templates->render('heat-sheets-index', ['meets' => $meets]);

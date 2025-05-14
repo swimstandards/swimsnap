@@ -24,7 +24,8 @@
           </h5>
           <p class="card-text mb-1">
             <i class="bi bi-calendar-event"></i>
-            <strong>Date:</strong> <?= $m['start_date'] ?> to <?= $m['end_date'] ?>
+            <strong>Date:</strong>
+            <?= date('m/d/Y', strtotime($m['start_date'])) ?> to <?= date('m/d/Y', strtotime($m['end_date'])) ?><br>
           </p>
           <?php if (!empty($m['venue'])): ?>
             <p class="card-text mb-1">
