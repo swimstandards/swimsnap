@@ -11,6 +11,33 @@
 <h1>Event Schedule</h1>
 <?php include __DIR__ . '/shared/meta-block.php' ?>
 
+<div class="row mb-4">
+  <div class="col-md mb-2">
+    <select id="strokeFilter" class="form-select" aria-label="Filter by stroke">
+      <option value="">All Strokes</option>
+      <?php foreach ($all_strokes as $s): ?>
+        <option value="<?= htmlspecialchars($s) ?>"><?= htmlspecialchars($s) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="col-md mb-2">
+    <select id="ageFilter" class="form-select" aria-label="Filter by age group">
+      <option value="">All Age Groups</option>
+      <?php foreach ($all_age_groups as $a): ?>
+        <option value="<?= htmlspecialchars($a) ?>"><?= htmlspecialchars($a) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="col-md">
+    <select id="genderFilter" class="form-select" aria-label="Filter by gender">
+      <option value="">All Genders</option>
+      <?php foreach ($all_genders as $g): ?>
+        <option value="<?= htmlspecialchars($g) ?>"><?= htmlspecialchars($g) ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+</div>
+
 <?php
 // Determine if any event has cuts to show
 $show_cuts = false;
@@ -45,7 +72,10 @@ foreach ($event_sessions as $events) {
       </thead>
       <tbody>
         <?php foreach ($events as $e): ?>
-          <tr>
+          <tr
+            data-stroke="<?= htmlspecialchars($e['stroke']) ?>"
+            data-age="<?= htmlspecialchars($e['age_group']) ?>"
+            data-gender="<?= htmlspecialchars($e['gender']) ?>">
             <td><?= $e['event_number'] ?></td>
             <td><?= $e['age_group'] ?></td>
             <td><?= $e['gender'] ?></td>
@@ -63,3 +93,38 @@ foreach ($event_sessions as $events) {
     </table>
   </div>
 <?php endforeach; ?>
+
+<?php $this->start('scripts') ?>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const strokeSelect = document.getElementById('strokeFilter');
+    const ageSelect = document.getElementById('ageFilter');
+    const genderSelect = document.getElementById('genderFilter');
+
+    [strokeSelect, ageSelect, genderSelect].forEach(select => {
+      select.addEventListener('change', applyFilters);
+    });
+
+    function applyFilters() {
+      const stroke = strokeSelect.value;
+      const age = ageSelect.value;
+      const gender = genderSelect.value;
+
+      document.querySelectorAll('tbody tr').forEach(row => {
+        const rowStroke = row.getAttribute('data-stroke');
+        const rowAge = row.getAttribute('data-age');
+        const rowGender = row.getAttribute('data-gender');
+
+        const show =
+          (!stroke || rowStroke === stroke) &&
+          (!age || rowAge === age) &&
+          (!gender || rowGender === gender);
+
+        row.style.display = show ? '' : 'none';
+      });
+    }
+  });
+</script>
+
+<?php $this->end() ?>

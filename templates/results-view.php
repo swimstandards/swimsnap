@@ -23,7 +23,7 @@
       type="text"
       id="searchInput"
       class="form-control"
-      placeholder="Search by swimmer or team..."
+      placeholder="Search by event, swimmer or team..."
       autocomplete="off">
     <button
       type="button"
@@ -204,7 +204,12 @@
           return;
         }
 
+        const tokens = term.split(/\s+/).filter(Boolean);
+
         const filteredEvents = originalData.map(event => {
+          const eventText = `${event.gender || ''} ${event.event_name || ''}`.toLowerCase();
+          const eventMatches = tokens.every(t => eventText.includes(t));
+
           const filteredResults = event.results.filter(r => {
             const rawName = (r.name ?? '').toLowerCase();
             let normalizedName = rawName;
@@ -213,13 +218,15 @@
               normalizedName = `${first} ${last}`;
             }
             const team = (r.team ?? '').toLowerCase();
-            return normalizedName.includes(term) || team.includes(term);
+            return tokens.every(t =>
+              normalizedName.includes(t) || team.includes(t)
+            );
           });
 
-          if (filteredResults.length > 0) {
+          if (filteredResults.length || eventMatches) {
             return {
               ...event,
-              results: filteredResults
+              results: eventMatches && !filteredResults.length ? event.results : filteredResults
             };
           }
           return null;

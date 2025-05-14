@@ -38,8 +38,28 @@ if (!$meet_info) {
 
 $event_sessions = parse_ev3_file($raw_path);
 
+$all_strokes = [];
+$all_age_groups = [];
+$all_genders = [];
+
+foreach ($event_sessions as $session => $events) {
+  foreach ($events as $e) {
+    if (!in_array($e['stroke'], $all_strokes)) $all_strokes[] = $e['stroke'];
+    if (!in_array($e['age_group'], $all_age_groups)) $all_age_groups[] = $e['age_group'];
+    if (!in_array($e['gender'], $all_genders)) $all_genders[] = $e['gender'];
+  }
+}
+
+$all_strokes = sort_strokes_by_standard_order($all_strokes);
+
+sort($all_age_groups);
+sort($all_genders);
+
 echo $templates->render('events-view', [
   'slug' => $slug,
   'meet_info' => $meet_info,
-  'event_sessions' => $event_sessions
+  'event_sessions' => $event_sessions,
+  'all_strokes' => $all_strokes,
+  'all_age_groups' => $all_age_groups,
+  'all_genders' => $all_genders
 ]);

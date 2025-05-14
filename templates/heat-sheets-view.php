@@ -23,7 +23,7 @@
       type="text"
       id="searchInput"
       class="form-control"
-      placeholder="Search by swimmer or team..."
+      placeholder="Search by event, swimmer or team..."
       autocomplete="off">
     <button
       type="button"
@@ -109,16 +109,6 @@
         let swimmers = heat.swimmers || [];
         let teams = heat.teams || [];
 
-        if (currentSearchTerm) {
-          swimmers = swimmers.filter(s =>
-            normalizeName(s.name).includes(currentSearchTerm) ||
-            (s.team && s.team.toLowerCase().includes(currentSearchTerm))
-          );
-          teams = teams.filter(t =>
-            t.team_name && t.team_name.toLowerCase().includes(currentSearchTerm)
-          );
-        }
-
         if (!swimmers.length && !teams.length) return;
 
         const heatTitle = document.createElement('h5');
@@ -201,28 +191,45 @@
 
     const tokens = raw.split(/\s+/).filter(Boolean);
     const filteredEvents = parsedEvents.map(event => {
-      const filteredHeats = (event.heats || []).map(heat => {
-        const swimmers = (heat.swimmers || []).filter(s => {
-          const name = normalizeName(s.name);
-          const team = s.team ? s.team.toLowerCase() : '';
-          return tokens.every(t => name.includes(t) || team.includes(t));
-        });
-        const teams = (heat.teams || []).filter(t => {
-          const team = t.team_name ? t.team_name.toLowerCase() : '';
-          return tokens.every(tk => team.includes(tk));
-        });
-        return (swimmers.length || teams.length) ? {
-          ...heat,
-          swimmers,
-          teams
-        } : null;
-      }).filter(Boolean);
+      const eventText = `${event.gender || ''} ${event.event_name || ''}`.toLowerCase();
+      const eventMatches = tokens.every(t => eventText.includes(t));
 
-      return filteredHeats.length ? {
-        ...event,
-        heats: filteredHeats
-      } : null;
+      let filteredHeats = [];
+
+      if (!eventMatches) {
+        filteredHeats = (event.heats || []).map(heat => {
+          const swimmers = (heat.swimmers || []).filter(s => {
+            const name = normalizeName(s.name);
+            const team = s.team ? s.team.toLowerCase() : '';
+            return tokens.every(t => name.includes(t) || team.includes(t));
+          });
+          const teams = (heat.teams || []).filter(t => {
+            const team = t.team_name ? t.team_name.toLowerCase() : '';
+            return tokens.every(tk => team.includes(tk));
+          });
+          return (swimmers.length || teams.length) ? {
+            ...heat,
+            swimmers,
+            teams
+          } : null;
+        }).filter(Boolean);
+      }
+
+      if (filteredHeats.length > 0) {
+        return {
+          ...event,
+          heats: filteredHeats
+        };
+      }
+
+      if (eventMatches) {
+        return event;
+      }
+
+      return null;
+
     }).filter(Boolean);
+
 
     buildAccordion(filteredEvents);
   }

@@ -109,7 +109,7 @@
         class="position-absolute top-0 end-0 mt-3 me-3 text-white text-decoration-none d-flex align-items-center gap-1"
         title="View or contribute on GitHub">
         <i class="bi bi-github fs-3"></i>
-        <span>GitHub</span>
+        <span class="d-none d-md-inline">GitHub</span>
       </a>
       <?= $this->section('content') ?>
     <?php else: ?>

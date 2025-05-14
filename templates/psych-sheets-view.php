@@ -22,7 +22,7 @@
       type="text"
       id="searchInput"
       class="form-control"
-      placeholder="Search by swimmer or team..."
+      placeholder="Search by event, swimmer or team..."
       autocomplete="off">
     <button
       type="button"
@@ -213,6 +213,9 @@
     }
 
     const filteredEvents = parsedEvents.map(event => {
+      const eventText = `${event.gender || ''} ${event.event_name || ''}`.toLowerCase();
+      const eventMatches = tokens.every(t => eventText.includes(t));
+
       const matchedSeeds = (event.seeds || []).filter(seed => {
         const nameText = (seed.name || '').toLowerCase();
         const teamText = (seed.team || '').toLowerCase();
@@ -224,10 +227,10 @@
         );
       });
 
-      if (matchedSeeds.length) {
+      if (matchedSeeds.length || eventMatches) {
         return {
           ...event,
-          seeds: matchedSeeds
+          seeds: eventMatches && !matchedSeeds.length ? event.seeds : matchedSeeds
         };
       }
       return null;

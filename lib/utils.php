@@ -91,3 +91,16 @@ function get_build_version(): string
 
     return 'dev';
 }
+
+function sort_strokes_by_standard_order(array $strokes): array
+{
+    $stroke_order = ['Free', 'Back', 'Breast', 'Fly', 'IM', 'Free Relay', 'Medley Relay'];
+
+    usort($strokes, function ($a, $b) use ($stroke_order) {
+        $indexA = array_search($a, $stroke_order);
+        $indexB = array_search($b, $stroke_order);
+        return ($indexA === false ? 999 : $indexA) - ($indexB === false ? 999 : $indexB);
+    });
+
+    return $strokes;
+}
