@@ -16,8 +16,8 @@ meta/*
 upload/*
 
 # Allow folders to exist
-!raw/
-!meta/
+!raw/.gitkeep
+!meta/.gitkeep
 !upload/.gitkeep
 
 
