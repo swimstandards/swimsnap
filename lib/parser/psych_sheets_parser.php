@@ -6,58 +6,119 @@
  * Updated: 2025-05-06 (restored flexible parsing logic)
  */
 
+/**
+ * Parses relay seed lines that may contain leading or trailing notes.
+ *
+ * Examples this handles:
+ *   1 _____ SwimRVA-VA A 3:52.45
+ *   2 B_____ Metro Area Life-NJ A 3:45.83
+ *   3 SwimRVA-VA A 3:52.45 JRNW
+ *   4 _____ Sunrise Swim Club-NE A 3:45.62 JRNW
+ */
 function parse_relay_line_with_note($line)
 {
+    // Normalize non-standard underscore/dash characters
     $line = preg_replace('/[‐‑‒–—―﹘﹣＿]/u', '_', $line);
 
-    // Match with optional single-letter note
-    // Example: 2 B_____ Metro Area Life-NJ A 3:45.83
-    if (preg_match('/^(\d+)\s+([A-Z])_+\s+(.+?)\s+([A-Z])\s+([\d:.]+)$/', $line, $m)) {
+    // Case 1: Relay with leading note (e.g., 1 _____ Team Name A 3:52.45 JRNW)
+    if (preg_match('/^(\d+)\s+([A-Z_]{3,})\s+(.+?)\s+([A-Z])\s+([\d:.]+)(?:\s+([A-Z]+))?$/', $line, $m)) {
+        $note = trim($m[2]);
+        if ($note === '_____') $note = '';
+        if (isset($m[6]) && preg_match('/[A-Z]/', $m[6])) {
+            $note = $m[6]; // Prefer trailing note if valid
+        }
+
         return [
             "rank" => $m[1],
             "team" => trim($m[3]),
             "relay" => $m[4],
-            "seed_time" => $m[5] . "(" . $m[2] . ")"
+            "seed_time" => $m[5] . ($note ? " ($note)" : "")
         ];
     }
 
-    // No note, just underscores
-    if (preg_match('/^(\d+)\s+_+\s+(.+?)\s+([A-Z])\s+([\d:.]+)$/', $line, $m)) {
+    // Case 2: Relay with no leading note (e.g., 2 Rockville Montgo-PV A 3:55.67 JRNW)
+    if (preg_match('/^(\d+)\s+(.+?)\s+([A-Z])\s+([\d:.]+)(?:\s+([A-Z]+))?$/', $line, $m)) {
+        $note = trim($m[5] ?? '');
+        if ($note === '_____') $note = '';
+
         return [
             "rank" => $m[1],
             "team" => trim($m[2]),
             "relay" => $m[3],
-            "seed_time" => $m[4]
+            "seed_time" => $m[4] . ($note ? " ($note)" : "")
         ];
     }
 
     return null;
 }
 
+/**
+ * Parses individual swimmer seed lines with optional notes (before or after time).
+ *
+ * Examples this handles:
+ *   1 _____ Joelle Van Duzer 14 Greater Holyoke-NE 17:31.60
+ *   2 B_____ Stella Somohano 12 Lakeland Hills-NJ 5:41.07 _
+ *   3 FUTM Guettler, Chris M15 SPA 52.20
+ *   4 14 Radakovic, Raj M15 SPA 56.99 JRNW
+ */
 function parse_swimmer_line_with_note($line)
 {
-    // Normalize weird dashes/underscores
+    // Normalize weird underscores and dashes
     $line = preg_replace('/[‐‑‒–—―﹘﹣＿]/u', '_', $line);
 
-    // Case: rank + B_____ prefix, ignore trailing underscore
-    if (preg_match('/^(\d+)\s+([A-Z])_+\s+(.+?)\s+(\d{1,2})\s+(.+?-[A-Z]{2})\s+([\d:.]+)(?:\s+_+)?$/', $line, $m)) {
+    // Case 1: With code and gender (FUTM Guettler, Chris M15 ...)
+    if (preg_match('/^(\d+)\s+([A-Z_\d]{3,})\s+(.+?)([MWF])(\d{1,2})\s+([A-Z\-]+)\s+([\d:.]+)(?:\s+([A-Z]+))?$/', $line, $m)) {
+        $note = trim($m[8] ?? '');
+        if ($note === '_____') $note = '';
+
+        return [
+            "rank" => $m[1],
+            "name" => trim($m[3]),
+            "age" => (int)$m[5],
+            "team" => trim($m[6]),
+            "seed_time" => $m[7] . ($note ? " ($note)" : "")
+        ];
+    }
+
+    // Case 2: No code, but gender stuck (Monkelis, ArnaM18 ...)
+    else if (preg_match('/^(\d+)\s+(.+?)([MFW])(\d{1,2})\s+([A-Z\-]+)\s+([\d:.]+)(?:\s+([A-Z]+))?$/', $line, $m)) {
+        $note = trim($m[7] ?? '');
+        if ($note === '_____') $note = '';
+
+        return [
+            "rank" => $m[1],
+            "name" => trim($m[2]),
+            "age" => (int)$m[4],
+            "team" => trim($m[5]),
+            "seed_time" => $m[6] . ($note ? " ($note)" : "")
+        ];
+    }
+
+    // Case 3: With code, no gender (FUTM Kim Castagna 12 SPA 55.10)
+    else if (preg_match('/^(\d+)\s+([A-Z_\d]{3,})\s+(.+?)\s+(\d{1,2})\s+([A-Z\-]+)\s+([\d:.]+)(?:\s+([A-Z]+))?$/', $line, $m)) {
+        $note = trim($m[7] ?? '');
+        if ($note === '_____') $note = '';
+
         return [
             "rank" => $m[1],
             "name" => trim($m[3]),
             "age" => (int)$m[4],
             "team" => trim($m[5]),
-            "seed_time" => $m[6] . "(" . $m[2] . ")"
+            "seed_time" => $m[6] . ($note ? " ($note)" : "")
         ];
     }
 
-    // Case: rank + only underscores, ignore trailing underscore
-    if (preg_match('/^(\d+)\s+_+\s+(.+?)\s+(\d{1,2})\s+(.+?-[A-Z]{2})\s+([\d:.]+)(?:\s+_+)?$/', $line, $m)) {
+    // Case 4: No code, no gender (_____ Kim Castagna 12 Metro Area Life-NJ ...)
+    else if (preg_match('/^(\d+)\s+_____+\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+([\d:.]+)(?:\s+([A-Z]+))?$/', $line, $m)) {
+        $note = trim($m[6] ?? '');
+        if ($note === '_____') $note = '';
+
         return [
             "rank" => $m[1],
             "name" => trim($m[2]),
             "age" => (int)$m[3],
             "team" => trim($m[4]),
-            "seed_time" => $m[5]
+            "seed_time" => $m[5] . ($note ? " ($note)" : "")
         ];
     }
 
@@ -200,6 +261,8 @@ function process_psych_sheet($content)
 
     foreach ($lines as $line) {
         $line = trim($line);
+        $line = preg_replace('/\s+/', ' ', $line);
+
         if ($line === '' || stripos($line, "HY-TEK") !== false || str_starts_with($line, "Sanction #:")) {
             continue;
         }
@@ -216,7 +279,9 @@ function process_psych_sheet($content)
         } elseif (stripos($line, "Team Relay Seed Time") !== false) {
             $relay_seed_mode = true;
             $individual_seed_mode = false;
-        } elseif (stripos($line, "Name Age Team Seed Time") !== false || stripos($line, "Name Seed Age Team Time") !== false) {
+        } elseif (
+            stripos($line, "Name Age Team Seed Time") !== false || stripos($line, "Name Seed Age Team Time") !== false
+        ) {
             $individual_seed_mode = true;
             $relay_seed_mode = false;
         } elseif ($relay_seed_mode && $current_event) {

@@ -1,10 +1,11 @@
 <?php
 $meet_name = htmlspecialchars($meet_info['meet_name'] ?? '');
+$meet_name_original = $meet_info['meet_name'];
 $meet_start = $meet_info['meet_start_date'] ?? '';
 $meet_end = $meet_info['meet_end_date'] ?? '';
 $meet_date = $meet_info['meet_date'] ?? '';
 $file_updated = $meet_info['file_datetime'] ?? null;
-$slug = slugify("$meet_name $meet_start");
+$slug = slugify("$meet_name_original $meet_start");
 $meet_link = "$base_url/meet/$slug";
 $org = $meet_info['organization'] ?? null;
 $venue = $meet_info['venue'] ?? null;

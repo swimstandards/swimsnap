@@ -38,7 +38,7 @@ function handle_text_upload(string $content): array
     "sheet_name" => ""
   ];
 
-  // Type to folder mapping (for raw and URL)
+  // Type to folder mapping
   $type_to_folder = [
     'heat_sheets' => 'heat-sheets',
     'psych_sheets' => 'psych-sheets',
@@ -47,15 +47,17 @@ function handle_text_upload(string $content): array
     'events'        => 'events' // handled by upload-file-handler.php
   ];
 
+  // Try to get org and file_datetime from first line
   foreach ($lines as $index => $line) {
     $line = trim($line);
 
     if ($index === 0) {
+      // Try to get organization before HY-TEK
       if (preg_match('/^(.*?)\s*-?\s*HY-TEK/i', $line, $matches)) {
         $org = trim($matches[1]);
-        $org_parts = preg_split('/\s+/', $org);
-        $metadata["organization"] = $org;
-        $org_slug = $org_parts[0] ?? $org; // use first letter for slug
+        if (!empty($org)) {
+          $metadata["organization"] = $org;
+        }
       } else {
         return [
           'status' => 'error',
@@ -63,11 +65,18 @@ function handle_text_upload(string $content): array
         ];
       }
 
+      // Try to get full datetime
       if (preg_match('/(\d{1,2}:\d{2} (AM|PM) \d{1,2}\/\d{1,2}\/\d{4})/', $line, $matches)) {
+        $metadata["file_datetime"] = trim($matches[1]);
+      }
+
+      // Fallback: just a date like 3/31/2025
+      if (empty($metadata["file_datetime"]) && preg_match('/\b(\d{1,2}\/\d{1,2}\/\d{4})\b/', $line, $matches)) {
         $metadata["file_datetime"] = trim($matches[1]);
       }
     }
 
+    // Get meet name + date range
     if ($index === 1) {
       if (preg_match('/^(.+?)\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4}) to (\d{1,2}\/\d{1,2}\/\d{4})$/', $line, $matches)) {
         $metadata["meet_name"] = trim($matches[1]);
@@ -80,9 +89,9 @@ function handle_text_upload(string $content): array
       }
     }
 
+    // Detect type
     if (stripos($line, "Psych Sheet") !== false) {
       $metadata["type"] = "psych_sheets";
-      $metadata["sheet_name"] = "";
       break;
     } elseif (stripos($line, "Meet Program") !== false) {
       $metadata["type"] = "heat_sheets";
@@ -101,24 +110,52 @@ function handle_text_upload(string $content): array
     }
   }
 
+  // Fallback org from "Hosted by"
+  if (empty($metadata["organization"])) {
+    foreach ($lines as $line) {
+      if (stripos($line, "Hosted by") !== false) {
+        if (preg_match('/Hosted by\s+(?:the\s+)?(.+?)(,|\s+Sanction|\s*$)/i', $line, $matches)) {
+          $metadata["organization"] = trim($matches[1]);
+        }
+        break;
+      }
+    }
+  }
+
+  // Fallback to current datetime
+  if (empty($metadata["file_datetime"])) {
+    $metadata["file_datetime"] = date('n/j/Y g:i A');
+  }
+
   if (empty($metadata["meet_name"]) || empty($metadata["type"])) {
     return [
       'status' => 'error',
       'message' => '❌ Error: Could not identify meet name or type.'
     ];
   }
-
-  // Generate slug
-  $parts = [];
+  // Build base string for hashing (include sheet_name if present)
+  $base_parts = [];
   if (!empty($metadata['sheet_name'])) {
-    $parts[] = $metadata['sheet_name'];
+    $base_parts[] = $metadata['sheet_name'];
   }
-  $parts[] = $metadata['meet_name'];
-  $parts[] = $metadata['meet_start_date'];
-  $parts[] = $org_slug;
+  $base_parts[] = $metadata['meet_name'];
+  $base_parts[] = $metadata['meet_start_date'];
+  $base_parts[] = $metadata['organization'];
 
-  $slug = slugify(implode('-', $parts));
-  $slug = preg_replace('/-+/', '-', $slug); // Collapse double dashes
+  $base = implode('-', $base_parts);
+  $hash = substr(sha1($base), 0, 6);
+
+  // Slugified visible portion (omit org)
+  $slug_parts = [];
+  if (!empty($metadata['sheet_name'])) {
+    $slug_parts[] = $metadata['sheet_name'];
+  }
+  $slug_parts[] = $metadata['meet_name'];
+  $slug_parts[] = $metadata['meet_start_date'];
+  $slug_parts[] = $hash;
+
+  $slug = slugify(implode('-', $slug_parts));
+  $slug = preg_replace('/-+/', '-', $slug); // Collapse dashes
   $metadata['slug'] = $slug;
 
   // Save raw content
@@ -130,25 +167,21 @@ function handle_text_upload(string $content): array
   $raw_path = $raw_dir . "$slug.txt";
   file_put_contents($raw_path, $content);
 
-  // Save metadata
+  // Save metadata (MongoDB or file-based)
   if (isset($_ENV['MONGODB_URI'])) {
     $mongo = new MongoDBLibrary();
     $result = $mongo->update_doc_if_newer(['slug' => $slug, 'type' => $metadata['type']], $metadata);
 
     $link = BASE_URL . "/$folder/$slug";
 
-    if ($result) {
-      return [
-        'status' => 'success',
-        'message' => "✅ Uploaded: <a href=\"$link\" target=\"_blank\">View " . htmlspecialchars($metadata['meet_name']) . ($metadata['sheet_name'] ? " (" . htmlspecialchars($metadata['sheet_name']) . ")" : "") . "</a>."
-      ];
-    } else {
-      return [
-        'status' => 'skipped',
-        'message' => "⏩ Skipped (Already Exists): <a href=\"$link\" target=\"_blank\">View " . htmlspecialchars($metadata['meet_name']) . ($metadata['sheet_name'] ? " (" . htmlspecialchars($metadata['sheet_name']) . ")" : "") . "</a>."
-      ];
-    }
+    return [
+      'status' => $result ? 'success' : 'skipped',
+      'message' => ($result ? "✅ Uploaded:" : "⏩ Skipped (Already Exists):") .
+        " <a href=\"$link\" target=\"_blank\">View " . htmlspecialchars($metadata['meet_name']) .
+        ($metadata['sheet_name'] ? " (" . htmlspecialchars($metadata['sheet_name']) . ")" : "") . "</a>."
+    ];
   } else {
+    // Fallback to meta.json
     $all_meta = load_meta_json();
     $exists = false;
 
@@ -173,7 +206,9 @@ function handle_text_upload(string $content): array
 
     return [
       'status' => $exists ? 'skipped' : 'success',
-      'message' => ($exists ? "⏩ Skipped:" : "✅ Uploaded:") . " <a href=\"$link\" target=\"_blank\">View " . htmlspecialchars($metadata['meet_name']) . ($metadata['sheet_name'] ? " (" . htmlspecialchars($metadata['sheet_name']) . ")" : "") . "</a>."
+      'message' => ($exists ? "⏩ Skipped:" : "✅ Uploaded:") .
+        " <a href=\"$link\" target=\"_blank\">View " . htmlspecialchars($metadata['meet_name']) .
+        ($metadata['sheet_name'] ? " (" . htmlspecialchars($metadata['sheet_name']) . ")" : "") . "</a>."
     ];
   }
 }
