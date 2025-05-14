@@ -7,15 +7,19 @@
  */
 
 /**
+ * Fallback swimmer parser for Crystal Reports PDFs
+ * Format: mm8heatsheet2colNoTstd.rpt (e.g., B____ after time or leading _____)
+ * 
  * Parses relay seed lines that may contain leading or trailing notes.
- *
+ * 
  * Examples this handles:
  *   1 _____ SwimRVA-VA A 3:52.45
  *   2 B_____ Metro Area Life-NJ A 3:45.83
  *   3 SwimRVA-VA A 3:52.45 JRNW
  *   4 _____ Sunrise Swim Club-NE A 3:45.62 JRNW
  */
-function parse_relay_line_with_note($line)
+
+function parse_relay_line_fallback($line)
 {
     // Normalize non-standard underscore/dash characters
     $line = preg_replace('/[‐‑‒–—―﹘﹣＿]/u', '_', $line);
@@ -53,6 +57,10 @@ function parse_relay_line_with_note($line)
 }
 
 /**
+ * 
+ * Fallback swimmer parser for Crystal Reports PDFs
+ * Format: mm8heatsheet2colNoTstd.rpt (e.g., B____ after time or leading _____)
+ * 
  * Parses individual swimmer seed lines with optional notes (before or after time).
  *
  * Examples this handles:
@@ -61,7 +69,7 @@ function parse_relay_line_with_note($line)
  *   3 FUTM Guettler, Chris M15 SPA 52.20
  *   4 14 Radakovic, Raj M15 SPA 56.99 JRNW
  */
-function parse_swimmer_line_with_note($line)
+function parse_swimmer_line_fallback($line)
 {
     // Normalize weird underscores and dashes
     $line = preg_replace('/[‐‑‒–—―﹘﹣＿]/u', '_', $line);
@@ -243,7 +251,7 @@ function parse_swimmer_gender_age($line)
 
 function parse_swimmer_line($line)
 {
-    if ($parsed = parse_swimmer_line_with_note($line)) return $parsed;
+    if ($parsed = parse_swimmer_line_fallback($line)) return $parsed;
     if ($parsed = parse_swimmer_gender_age($line)) return $parsed;
     if ($parsed = parse_swimmer_full_team($line)) return $parsed;
     if ($parsed = parse_swimmer_abbr_team($line)) return $parsed;
@@ -285,7 +293,7 @@ function process_psych_sheet($content)
             $individual_seed_mode = true;
             $relay_seed_mode = false;
         } elseif ($relay_seed_mode && $current_event) {
-            $seed = parse_relay_line_with_note($line); // fallback
+            $seed = parse_relay_line_fallback($line); // fallback
             if (!$seed) {
                 $seed = parse_relay_seed($line);
             }

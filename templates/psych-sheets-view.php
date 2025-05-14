@@ -126,6 +126,7 @@
             <th>Team</th>
             <th>Seed Time</th>` : `
             <th>Team</th>
+            <th>Relay</th>
             <th>Seed Time</th>`
           }
         </tr>`;
@@ -142,6 +143,7 @@
               <td>${highlightMatch(s.team)}</td>
               <td>${s.seed_time}</td>` : `
               <td>${highlightMatch(s.team)}</td>
+              <td>${s.relay}</td>
               <td>${s.seed_time}</td>`
             }
           `;
