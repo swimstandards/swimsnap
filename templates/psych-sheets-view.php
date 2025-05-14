@@ -11,9 +11,9 @@
 </nav>
 
 <h1>Psych Sheet</h1>
-
-<?php include __DIR__ . '/shared/meta-block.php' ?>
 <?php include __DIR__ . '/shared/note-report-block.php' ?>
+<?php include __DIR__ . '/shared/meta-block.php' ?>
+
 
 <div class="mb-3 d-flex">
   <div class="input-group" style="max-width: 400px;">

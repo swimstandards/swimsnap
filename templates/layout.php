@@ -31,7 +31,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" />
-  <link rel="stylesheet" href="<?= $base_url ?>/css/style.css?<?= $this->e($build_version) ?>">
+  <link rel="stylesheet" href="<?= $base_url ?>/css/style.css?<?= rawurlencode($build_version) ?>">
 </head>
 
 <body>
@@ -105,6 +105,12 @@
 
   <main>
     <?php if (isset($full_width) && $full_width): ?>
+      <a href="https://github.com/swimstandards/swimsnap" target="_blank" rel="noopener"
+        class="position-absolute top-0 end-0 mt-3 me-3 text-white text-decoration-none d-flex align-items-center gap-1"
+        title="View or contribute on GitHub">
+        <i class="bi bi-github fs-3"></i>
+        <span>GitHub</span>
+      </a>
       <?= $this->section('content') ?>
     <?php else: ?>
       <div class="container p-4">
@@ -112,6 +118,16 @@
       </div>
     <?php endif; ?>
   </main>
+
+  <footer class="text-center text-muted small py-3 border-top mt-auto">
+    <div class="container">
+      <span>
+        &copy; <?= date('Y') ?> SwimSnap (<?= htmlspecialchars($build_version) ?>) ·
+        Open source on <a href="https://github.com/swimstandards/swimsnap" target="_blank" rel="noopener">GitHub</a> ·
+        Built by the team behind <a href="https://swimstandards.com" target="_blank" rel="noopener">SwimStandards</a>
+      </span>
+    </div>
+  </footer>
 
   <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -183,6 +199,28 @@
     setupLiveSearch('search-box', 'search-results');
     setupLiveSearch('search-box-mobile', 'search-results-mobile');
     setupLiveSearch('search-box', 'search-results-home');
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Bootstrap tooltip
+      const tooltipTrigger = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltipTrigger.forEach(el => new bootstrap.Tooltip(el));
+
+      // Copy URL handler
+      const copyLink = document.getElementById('copyUrlInline');
+      const feedback = document.getElementById('copyUrlFeedback');
+
+      if (copyLink) {
+        copyLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          navigator.clipboard.writeText(window.location.href).then(() => {
+            feedback.style.display = 'inline';
+            setTimeout(() => feedback.style.display = 'none', 2000);
+          });
+        });
+      }
+    });
   </script>
 
   <?= $this->section('scripts') ?>

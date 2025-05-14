@@ -72,3 +72,22 @@ function extract_event_info(string $line): ?array
 
     return null;
 }
+
+function get_build_version(): string
+{
+    $version_file = __DIR__ . '/../version.php';
+
+    if (file_exists($version_file)) {
+        include $version_file;
+        return $build_version ?? 'unknown';
+    }
+
+    if (is_dir(__DIR__ . '/../.git')) {
+        $branch = shell_exec('git rev-parse --abbrev-ref HEAD 2>/dev/null');
+        if (is_string($branch) && trim($branch)) {
+            return 'branch:' . trim($branch);
+        }
+    }
+
+    return 'dev';
+}

@@ -25,16 +25,11 @@ if ($_ENV['APP_ENV'] === 'PRODUCTION') {
 }
 
 
-$version_file = __DIR__ . '/../webroot/build_version.txt';
-$build_version = file_exists($version_file) ? trim(file_get_contents($version_file)) : time();
-
-
-
 $templates = new League\Plates\Engine(__DIR__ . '/../templates');
 
 // This adds global data for all views:
 $templates->addData([
   'base_url' => BASE_URL,
   'recaptcha_site_key' => RECAPTCHA_SITE_KEY,
-  'build_version' => $build_version,
+  'build_version' => get_build_version(),
 ]);

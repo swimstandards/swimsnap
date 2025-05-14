@@ -28,3 +28,4 @@ upload/*
 /vendor/
 
 
+version.php

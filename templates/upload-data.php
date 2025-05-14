@@ -24,7 +24,45 @@
   <div class="row">
     <div class="col-md-8 mb-3">
 
-      <textarea class="form-control" id="meetContent" name="meetContent" rows="16" required></textarea>
+      <textarea class="form-control mb-3" id="meetContent" name="meetContent" rows="12" required></textarea>
+
+      <?php if (!empty($recaptcha_site_key)): ?>
+        <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad" async defer></script>
+        <button
+          id="recaptcha-btn"
+          class="btn btn-primary g-recaptcha"
+          data-sitekey="<?= htmlspecialchars($recaptcha_site_key) ?>"
+          data-callback="onSubmit"
+          data-action="submit"
+          disabled>
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Loading reCAPTCHA...
+        </button>
+
+        <script>
+          function onSubmit(token) {
+            const form = document.getElementById('text-upload-form');
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'g-recaptcha-response';
+            hidden.value = token;
+            form.appendChild(hidden);
+            form.submit();
+          }
+
+          function onRecaptchaLoad() {
+            const btn = document.getElementById('recaptcha-btn');
+            if (btn) {
+              setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload';
+              }, 1000);
+            }
+          }
+        </script>
+      <?php else: ?>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      <?php endif; ?>
     </div>
     <div class="col-md-4">
       <div class="alert alert-info">
@@ -45,41 +83,5 @@
     </div>
   </div>
 
-  <?php if (!empty($recaptcha_site_key)): ?>
-    <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad" async defer></script>
-    <button
-      id="recaptcha-btn"
-      class="btn btn-primary g-recaptcha"
-      data-sitekey="<?= htmlspecialchars($recaptcha_site_key) ?>"
-      data-callback="onSubmit"
-      data-action="submit"
-      disabled>
-      <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-      Loading reCAPTCHA...
-    </button>
 
-    <script>
-      function onSubmit(token) {
-        const form = document.getElementById('text-upload-form');
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'g-recaptcha-response';
-        hidden.value = token;
-        form.appendChild(hidden);
-        form.submit();
-      }
-
-      function onRecaptchaLoad() {
-        const btn = document.getElementById('recaptcha-btn');
-        if (btn) {
-          setTimeout(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload';
-          }, 1000);
-        }
-      }
-    </script>
-  <?php else: ?>
-    <button type="submit" class="btn btn-primary">Upload</button>
-  <?php endif; ?>
 </form>
