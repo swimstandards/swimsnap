@@ -18,10 +18,31 @@
   </div>
 <?php endif; ?>
 
+<label for="meetContent" class="form-label">Paste PDF Content Here:</label>
+
 <form method="POST" action="<?= $base_url ?>/upload-data-handler.php" id="text-upload-form" class="mb-4">
-  <div class="mb-3">
-    <label for="meetContent" class="form-label">Paste PDF Content Here:</label>
-    <textarea class="form-control" id="meetContent" name="meetContent" rows="12" required></textarea>
+  <div class="row">
+    <div class="col-md-8 mb-3">
+
+      <textarea class="form-control" id="meetContent" name="meetContent" rows="16" required></textarea>
+    </div>
+    <div class="col-md-4">
+      <div class="alert alert-info">
+        <strong>📌 Upload Instructions</strong><br><br>
+        <ol class="mb-2 ps-3">
+          <li>Open the PDF in Google Chrome</li>
+          <li>Press <kbd>Ctrl + A</kbd> (Windows) or <kbd>Command + A</kbd> (Mac)</li>
+          <li>Copy and paste the content into the box</li>
+        </ol>
+
+        <strong class="d-block mb-1">Notes:</strong>
+        <ul class="mb-0 ps-3">
+          <li>Only PDFs exported from <strong>HY-TEK’s MEET MANAGER</strong> are supported</li>
+          <li>Due to layout differences, not all PDF content formats are supported</li>
+          <li>If parsing fails, copy the page URL and report it <a href="https://community.swimstandards.com/category/13/swimsnap" target="_blank">here</a></li>
+        </ul>
+      </div>
+    </div>
   </div>
 
   <?php if (!empty($recaptcha_site_key)): ?>
@@ -54,7 +75,7 @@
           setTimeout(() => {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload';
-          }, 1000); // 1000 milliseconds = 1 second
+          }, 1000);
         }
       }
     </script>
