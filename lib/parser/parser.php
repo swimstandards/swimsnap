@@ -55,6 +55,7 @@ function handle_text_upload(string $content): array
       // Try to get organization before HY-TEK
       if (preg_match('/^(.*?)\s*-?\s*HY-TEK/i', $line, $matches)) {
         $org = trim($matches[1]);
+        $org = preg_replace('/\s+-?\s*Organization License$/i', '', $org);
         if (!empty($org)) {
           $metadata["organization"] = $org;
         }
