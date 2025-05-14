@@ -42,4 +42,7 @@ if (!empty($_ENV['MONGODB_URI'])) {
   }
 }
 
+// Sort by start_date descending
+usort($meets, fn($a, $b) => ($b['start_date'] ?? '') <=> ($a['start_date'] ?? ''));
+
 echo $templates->render('events-index', ['meets' => $meets]);
