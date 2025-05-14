@@ -52,45 +52,47 @@ foreach ($event_sessions as $events) {
 ?>
 
 <?php foreach ($event_sessions as $session => $events): ?>
-  <h4>Session <?= htmlspecialchars($session) ?></h4>
-  <div class="table-responsive">
-    <table class="table table-sm table-striped table-bordered w-100">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Age Group</th>
-          <th>Gender</th>
-          <th>Distance</th>
-          <th>Stroke</th>
-          <th>Type</th>
-          <th>Time</th>
-          <?php if ($show_cuts): ?>
-            <th>LCM Cut</th>
-            <th>SCY Cut</th>
-          <?php endif; ?>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($events as $e): ?>
-          <tr
-            data-stroke="<?= htmlspecialchars($e['stroke']) ?>"
-            data-age="<?= htmlspecialchars($e['age_group']) ?>"
-            data-gender="<?= htmlspecialchars($e['gender']) ?>">
-            <td><?= $e['event_number'] ?></td>
-            <td><?= $e['age_group'] ?></td>
-            <td><?= $e['gender'] ?></td>
-            <td><?= $e['distance'] ?>m</td>
-            <td><?= $e['stroke'] ?></td>
-            <td><?= $e['type'] ?></td>
-            <td><?= $e['event_time'] ?></td>
+  <div class="session-block mb-4" data-session="<?= htmlspecialchars($session) ?>">
+    <h4>Session <?= htmlspecialchars($session) ?></h4>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-bordered w-100">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Age Group</th>
+            <th>Gender</th>
+            <th>Distance</th>
+            <th>Stroke</th>
+            <th>Type</th>
+            <th>Time</th>
             <?php if ($show_cuts): ?>
-              <td><?= htmlspecialchars($e['lcm_cut'] ?? '-') ?></td>
-              <td><?= htmlspecialchars($e['scy_cut'] ?? '-') ?></td>
+              <th>LCM Cut</th>
+              <th>SCY Cut</th>
             <?php endif; ?>
           </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <?php foreach ($events as $e): ?>
+            <tr
+              data-stroke="<?= htmlspecialchars($e['stroke']) ?>"
+              data-age="<?= htmlspecialchars($e['age_group']) ?>"
+              data-gender="<?= htmlspecialchars($e['gender']) ?>">
+              <td><?= $e['event_number'] ?></td>
+              <td><?= $e['age_group'] ?></td>
+              <td><?= $e['gender'] ?></td>
+              <td><?= $e['distance'] ?>m</td>
+              <td><?= $e['stroke'] ?></td>
+              <td><?= $e['type'] ?></td>
+              <td><?= $e['event_time'] ?></td>
+              <?php if ($show_cuts): ?>
+                <td><?= htmlspecialchars($e['lcm_cut'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($e['scy_cut'] ?? '-') ?></td>
+              <?php endif; ?>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
   </div>
 <?php endforeach; ?>
 
@@ -122,6 +124,11 @@ foreach ($event_sessions as $events) {
           (!gender || rowGender === gender);
 
         row.style.display = show ? '' : 'none';
+      });
+      // Then hide session blocks with no visible rows
+      document.querySelectorAll('.session-block').forEach(block => {
+        const visibleRows = block.querySelectorAll('tbody tr:not([style*="display: none"])');
+        block.style.display = visibleRows.length ? '' : 'none';
       });
     }
   });
