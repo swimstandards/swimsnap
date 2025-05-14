@@ -213,9 +213,14 @@
 
     const filteredEvents = parsedEvents.map(event => {
       const matchedSeeds = (event.seeds || []).filter(seed => {
-        const text = (seed.name || seed.team || '').toLowerCase();
-        const normName = normalizeName(text);
-        return tokens.every(t => normName.includes(t) || text.includes(t));
+        const nameText = (seed.name || '').toLowerCase();
+        const teamText = (seed.team || '').toLowerCase();
+        const normName = normalizeName(nameText);
+        return tokens.every(t =>
+          normName.includes(t) ||
+          nameText.includes(t) ||
+          teamText.includes(t)
+        );
       });
 
       if (matchedSeeds.length) {
