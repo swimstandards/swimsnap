@@ -152,7 +152,7 @@ function handle_text_upload(string $content): array
     $slug_parts[] = $metadata['sheet_name'];
   }
   $slug_parts[] = $metadata['meet_name'];
-  $slug_parts[] = $metadata['meet_start_date'];
+  // $slug_parts[] = $metadata['meet_start_date']; // remove this to make url shorter
   $slug_parts[] = $hash;
 
   $slug = slugify(implode('-', $slug_parts));

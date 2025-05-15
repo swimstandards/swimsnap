@@ -84,7 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['zip_file'])) {
     $end_date = isset($parts[2]) ? format_date_to_iso($parts[2]) : '';
     $venue = trim($parts[5] ?? '');
 
-    $slug_parts = array_filter([$meet_name, $start_date, $venue]);
+    // 🔐 Build hash from full metadata for uniqueness
+    $base = implode('-', [$meet_name, $start_date, $venue]);
+    $hash = substr(sha1($base), 0, 6);
+
+    // $slug_parts = array_filter([$meet_name, $start_date, $venue]);
+    // Final slug: meet_name + hash = shorter!
+    $slug_parts = [$meet_name, $hash];
     $slug = slugify(implode('-', $slug_parts));
 
     $base_metadata = [
