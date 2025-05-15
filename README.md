@@ -81,12 +81,32 @@ README.md
 
 Make sure you have the following installed:
 
-- PHP 8.0+ with common extensions (e.g., `mbstring`, `json`, `fileinfo`)
+- PHP 8.0+ with common extensions (e.g., `mbstring`, `zip`, `json`, `fileinfo`)
 - [Composer](https://getcomposer.org/) for PHP dependency management
 - A web server:
   - Apache (recommended, with `mod_rewrite`)
   - or Nginx (with PHP-FPM)
 - (Optional) [MongoDB](https://www.mongodb.com/try/download/community) — required if you want to store metadata in a database instead of JSON files
+
+To install the `zip` extension:
+
+#### Ubuntu/Debian
+```bash
+sudo apt install php-zip
+# or for PHP 8.2 specifically:
+sudo apt install php8.2-zip
+sudo systemctl restart php8.2-fpm
+```
+
+#### macOS (Homebrew)
+```bash
+brew install php
+# or, if already installed:
+brew reinstall php
+```
+Then verify:
+```bash
+php -m | grep zip
 
 ---
 
