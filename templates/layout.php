@@ -162,6 +162,8 @@
       const input = document.getElementById(inputId);
       const resultBox = document.getElementById(resultId);
 
+      if (!input || !resultBox) return; // stop if either is missing
+
       input?.addEventListener('input', function() {
         const q = this.value.trim();
         if (q.length < 2) {
