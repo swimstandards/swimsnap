@@ -1,11 +1,11 @@
 <?php
 
 require_once __DIR__ . '/../../lib/bootstrap.php';
-require_once __DIR__ . '/../../lib/mongodb.php'; // MongoDB wrapper
 
 $meets = [];
 
 if (!empty($_ENV['MONGODB_URI'])) {
+  require_once __DIR__ . '/../../lib/mongodb.php';
   // MongoDB mode
   $mongo = new MongoDBLibrary();
   $cursor = $mongo->get_all_docs('results');

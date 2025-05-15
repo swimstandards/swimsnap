@@ -12,6 +12,7 @@ if (strlen($query) < 2) {
 $results = [];
 
 if (!empty($_ENV['MONGODB_URI'])) {
+    require_once __DIR__ . '/../lib/mongodb.php';
     $mongo = new MongoDBLibrary();
 
     $cursor = $mongo->collection->aggregate([
@@ -31,7 +32,7 @@ if (!empty($_ENV['MONGODB_URI'])) {
         $results[] = [
             'meet_name' => $doc['meet_name'],
             'meet_start_date' => $doc['meet_start_date'],
-            'slug' => BASE_URL . "/" . $doc['_id'],
+            'slug' => BASE_URL . "/meet/" . $doc['_id'],
             'types' => $doc['types']
         ];
     }

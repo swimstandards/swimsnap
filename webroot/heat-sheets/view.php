@@ -2,8 +2,7 @@
 
 require_once __DIR__ . '/../../lib/bootstrap.php';
 require_once __DIR__ . '/../../lib/parser/heat_sheets_parser.php';
-require_once __DIR__ . '/../../lib/utils.php';
-require_once __DIR__ . '/../../lib/mongodb.php'; // MongoDBLibrary
+
 
 $slug = basename($_GET['slug'] ?? '');
 
@@ -12,6 +11,8 @@ $raw_path = RAW_DIR . "heat-sheets/{$slug}.txt";
 
 // First: Try to load metadata from MongoDB
 if (!empty($_ENV['MONGODB_URI'])) {
+  require_once __DIR__ . '/../../lib/mongodb.php'; // MongoDBLibrary
+
   $mongo = new MongoDBLibrary();
   $meet_info = $mongo->collection->findOne(['slug' => $slug, 'type' => 'heat_sheets']);
 } else {
