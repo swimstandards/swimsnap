@@ -118,7 +118,7 @@
 
   <main>
     <?php if (isset($full_width) && $full_width): ?>
-      <a href="https://github.com/swimstandards/swimsnap" target="_blank" rel="noopener"
+      <a href="https://github.com/swimstandards/swimsnap" rel="noopener"
         class="position-absolute top-with-shoutout end-0 mt-3 me-3 text-white text-decoration-none d-flex align-items-center gap-1"
         title="View or contribute on GitHub">
         <i class="bi bi-github fs-3"></i>
