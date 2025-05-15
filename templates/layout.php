@@ -32,6 +32,19 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css" />
   <link rel="stylesheet" href="<?= $base_url ?>/css/style.css?<?= rawurlencode($build_version) ?>">
+  <?php if (!empty($_ENV['GTAG_ID'])): ?>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?= htmlspecialchars($_ENV['GTAG_ID']) ?>"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+      gtag('config', '<?= htmlspecialchars($_ENV['GTAG_ID']) ?>');
+    </script>
+  <?php endif; ?>
 </head>
 
 <body>
