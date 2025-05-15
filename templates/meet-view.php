@@ -123,7 +123,7 @@ function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not availa
       $link = "{$base_url}/{$slugType}/{$doc['slug']}";
 
       echo "<a href=\"$link\" class=\"list-clickable text-decoration-none text-body d-flex align-items-center gap-2 py-2 border-bottom hover-row\">";
-      echo '<i class="bi bi-link-45deg text-secondary"></i>';
+      echo '<i class="bi bi-link-45deg text-primary"></i>';
       echo "<div>$displayTitle";
       if ($org || $timeFormatted) {
         echo " <span class=\"text-muted small\">• ";

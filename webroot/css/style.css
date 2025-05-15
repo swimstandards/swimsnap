@@ -18,8 +18,16 @@ main {
   flex: 1;
 }
 
+.top-with-shoutout {
+  top: 50px;
+}
+
 .bg-primary {
   background-color: var(--bs-primary) !important;
+}
+
+.text-primary {
+  color: var(--bs-primary) !important;
 }
 
 input:focus,
@@ -79,6 +87,15 @@ a:hover {
 .hero-banner > * {
   position: relative;
   z-index: 2;
+}
+
+.list-clickable {
+  color: var(--bs-primary) !important; /* Bootstrap's primary blue */
+}
+
+.list-clickable:hover {
+  background-color: #f8f9fa; /* Light gray hover (same as Bootstrap .bg-light) */
+  text-decoration: none;
 }
 
 /* Prevent underline on hover for buttons and links styled as buttons */
@@ -190,6 +207,9 @@ table.dataTable th.sorting {
 }
 
 @media (max-width: 767.98px) {
+  .top-with-shoutout {
+    top: 100px;
+  }
   .btn-lg {
     padding: 0.25rem 0.5rem !important;
     font-size: 0.875rem !important;
