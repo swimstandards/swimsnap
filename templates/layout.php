@@ -176,7 +176,12 @@
           .then(res => res.json())
           .then(data => {
             if (!data.length) {
-              resultBox.classList.add('d-none');
+              resultBox.innerHTML = `
+    <li class="list-group-item text-muted small">
+      No results found. You can help grow SwimSnap by uploading missing meet documents.
+    </li>
+  `;
+              resultBox.classList.remove('d-none');
               return;
             }
 
