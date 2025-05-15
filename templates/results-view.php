@@ -36,7 +36,7 @@
   </div>
 </div>
 
-<div class="accordion" id="resultsAccordion"></div>
+<div class="resultsContainer" id="resultsAccordion"></div>
 
 <?php $this->start('scripts') ?>
 <script>

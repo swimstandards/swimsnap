@@ -123,6 +123,10 @@ a:hover {
   border-color: #52a0d7;
 }
 
+.resultsContainer {
+  min-height: 300px;
+}
+
 .accordion-button:not(.collapsed) {
   background-color: #16649e; /* your main color */
   color: #fff; /* text color */

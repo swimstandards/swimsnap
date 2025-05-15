@@ -35,7 +35,7 @@
   </div>
 </div>
 
-<div id="psychSheetAccordionContainer"></div>
+<div class="resultsContainer" id="psychSheetAccordionContainer"></div>
 
 <?php $this->start('scripts') ?>
 <script>
