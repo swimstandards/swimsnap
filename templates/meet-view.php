@@ -93,7 +93,31 @@ function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not availa
 
       $org = htmlspecialchars($doc['venue'] ?? $doc['organization'] ?? '');
       $time = $doc['file_datetime'] ?? $doc['updated_at'] ?? '';
-      $timeFormatted = $time ? date('M j, Y', strtotime($time)) : '';
+      $timeFormatted = 'N/A';
+
+      if ($time) {
+        $cleanTime = trim($time);
+
+        try {
+          if (preg_match('/^\d{13}$/', $cleanTime)) {
+            // Milliseconds timestamp
+            $timestampInSeconds = (int)($cleanTime / 1000);
+            $dt = new DateTime();
+            $dt->setTimestamp($timestampInSeconds);
+          } else {
+            // ISO 8601 string (strip milliseconds if present)
+            $cleanTime = preg_replace('/\.\d+/', '', $cleanTime);
+            $cleanTime = preg_replace('/([+-]\d{2}):(\d{2})$/', '$1$2', $cleanTime);
+            $dt = new DateTime($cleanTime);
+          }
+
+          // Optional: convert to your local timezone
+          $dt->setTimezone(new DateTimeZone('America/New_York'));
+          $timeFormatted = $dt->format('M j, Y');
+        } catch (Exception $e) {
+          $timeFormatted = 'N/A';
+        }
+      }
 
       $slugType = str_replace('_', '-', $type);
       $link = "{$base_url}/{$slugType}/{$doc['slug']}";
