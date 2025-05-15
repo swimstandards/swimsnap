@@ -15,8 +15,9 @@ $meet_start_date = '';
 
 // 1. Try MongoDB if available
 if (!empty($_ENV['MONGODB_URI'])) {
-  require_once __DIR__ . '/../lib/mongodb.php';
+  require_once __DIR__ . '/../../lib/mongodb.php';
   $mongo = new MongoDBLibrary();
+  /** @var Traversable $cursor */
   $cursor = $mongo->collection->find(['meet_slug' => $slug]);
   $meet_docs = iterator_to_array($cursor, false);
 
