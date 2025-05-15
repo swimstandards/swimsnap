@@ -83,7 +83,7 @@ function parse_team_line_fallback($line)
 
 function parse_swimmer_standard($line)
 {
-    if (preg_match('/^(\d+)\s+(.+?)\s+(\d{1,2})\s+([A-Z]+-[A-Z]+)\s+((?:[A-Z]{0,4})?[\d:.]+[A-Z]{0,2}|NT)(?:\s+([A-Z]+))?$/', $line, $m)) {
+    if (preg_match('/^(\d+)\s+(.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+((?:[A-Z]{0,4})?[\d:.]+[A-Z]{0,2}|NT)(?:\s+([A-Z]+))?$/', $line, $m)) {
         $seed_time = $m[5];
         if (isset($m[6])) {
             $seed_time .= ' (' . $m[6] . ')';
@@ -120,21 +120,6 @@ function parse_swimmer_gender_age($line)
 }
 
 
-function parse_swimmer_line($line)
-{
-    // Try standard swimmer line format
-    $parsed = parse_swimmer_standard($line);
-    if ($parsed) return $parsed;
-
-    // Try swimmer line with gender+age combo
-    $parsed = parse_swimmer_gender_age($line);
-    if ($parsed) return $parsed;
-
-    // Try fallback for Crystal Reports-style PDF (e.g., mm8heatsheet2colNoTstd.rpt)
-    return parse_swimmer_line_fallback($line);
-}
-
-
 function parse_team_line_standard($line)
 {
     /**
@@ -154,10 +139,25 @@ function parse_team_line_standard($line)
 }
 
 
-function parse_team_line($line)
+function parse_swimmer_line($line)
 {
     // Try standard swimmer line format
     $parsed = parse_swimmer_standard($line);
+    if ($parsed) return $parsed;
+
+    // Try swimmer line with gender+age combo
+    $parsed = parse_swimmer_gender_age($line);
+    if ($parsed) return $parsed;
+
+    // Try fallback for Crystal Reports-style PDF (e.g., mm8heatsheet2colNoTstd.rpt)
+    return parse_swimmer_line_fallback($line);
+}
+
+
+function parse_team_line($line)
+{
+    // Try standard swimmer line format
+    $parsed = parse_team_line_standard($line);
     if ($parsed) return $parsed;
 
     // Try fallback for Crystal Reports-style PDF (e.g., mm8heatsheet2colNoTstd.rpt)
