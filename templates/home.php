@@ -3,7 +3,7 @@
 <div class="hero-banner-simple text-center">
   <div class="bg-light border-top border-bottom py-3">
     <div class="container text-center">
-      <a href="https://swimsnap.com/meet/2025-ez-lc-speedo-super-sectional-2025-05-15" target="_blank" rel="noopener" class="text-decoration-none">
+      <a href="https://swimsnap.com/meet/2025-ez-lc-speedo-super-sectional-2025-05-15" rel="noopener" class="text-decoration-none">
         <strong>🚨 Now Live:</strong> <span class="text-primary">Day 1 Finals – 2025 EZ LC Speedo Super Sectional</span> · Click here to view Meet Central →
       </a>
     </div>
