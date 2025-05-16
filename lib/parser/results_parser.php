@@ -186,6 +186,35 @@ function parse_result_line($line)
     ];
   }
 
+  // Time trial fallback: rank name age team seed_time final_time (no comma)
+  if (preg_match('/^(\d+)\s+([A-Za-z\'\-\.\(\)]+(?:\s+[A-Za-z\'\-\.\(\)]+)*)\s+(\d{1,2})\s+(.+?)\s+(NT|\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)\s+(\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)$/', $line, $m)) {
+    return [
+      "rank" => $m[1],
+      "name" => trim($m[2]),
+      "age" => (int)$m[3],
+      "team" => trim($m[4]),
+      "seed_time" => $m[5],
+      "result_time" => $m[6],
+      "qualified" => false,
+      "relay" => null
+    ];
+  }
+
+
+  // fallback for: rank, name, age, FULL team name, NT seed, result time
+  if (preg_match('/^(\d+)\s+([^,]+),\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+(NT|\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)\s+(\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)$/', $line, $m)) {
+    return [
+      "rank" => $m[1],
+      "name" => trim($m[2]) . ' ' . trim($m[3]),
+      "age" => (int)$m[4],
+      "team" => trim($m[5]),
+      "seed_time" => $m[6],
+      "result_time" => $m[7],
+      "qualified" => false,
+      "relay" => null
+    ];
+  }
+
   return null;
 }
 
@@ -202,6 +231,20 @@ function parse_relay_line($line)
       'points' => isset($m[6]) ? (int)$m[6] : null,
     ];
   }
+
+  // Fallback: relay result with only final time (no seed time)
+  if (preg_match('/^(\*?\d+|---)\s+([A-Z0-9\'\-\. ]+)\s+([A-Z])\s+(\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)$/', $line, $m)) {
+    return [
+      'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
+      'team' => trim($m[2]),
+      'relay' => $m[3],
+      'seed_time' => null,
+      'finals_time' => $m[4],
+      'status' => null,
+      'points' => null,
+    ];
+  }
+
   return null;
 }
 
@@ -364,6 +407,11 @@ function process_results($content)
       $current_event = $info + ['results' => []];
       $current_results = [];
       $in_relay = false;
+      continue;
+    }
+
+    if (preg_match('/^Team\s+Relay.*Finals\s+Time$/i', $line)) {
+      $in_relay = true;
       continue;
     }
 
