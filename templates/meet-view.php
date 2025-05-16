@@ -28,43 +28,6 @@ foreach ($meet_docs as $doc) {
   }
 }
 
-function renderSection1($label, $type, $docs, $base_url, $emptyText = 'Not available')
-{
-  echo "<h2 class=\"h5 mt-4\">$label</h2>";
-
-  if (!empty($docs)) {
-    echo '<div class="mb-3">';
-    foreach ($docs as $doc) {
-      $meetName = htmlspecialchars($doc['meet_name'] ?? '');
-      $sheetName = trim($doc['sheet_name'] ?? '');
-      $displayTitle = $sheetName ? "$meetName — $sheetName" : $meetName;
-
-      $org = htmlspecialchars($doc['venue'] ?? $doc['organization'] ?? '');
-      $time = $doc['file_datetime'] ?? $doc['updated_at'] ?? '';
-      $timeFormatted = $time ? date('M j, Y', strtotime($time)) : '';
-
-      $slugType = str_replace('_', '-', $type) . 's';
-      $link = "{$base_url}/{$slugType}/{$doc['slug']}";
-
-      echo "<a href=\"$link\" class=\" list-clickable text-decoration-none text-body d-flex align-items-center gap-2 py-2 border-bottom hover-row\">";
-      echo '<i class="bi bi-link-45deg text-secondary"></i>'; // Link icon
-      echo "<div>$displayTitle";
-      if ($org || $timeFormatted) {
-        echo " <span class=\"text-muted small\">• ";
-        if ($org) echo "$org";
-        if ($org && $timeFormatted) echo " — ";
-        if ($timeFormatted) echo "Updated $timeFormatted";
-        echo "</span>";
-      }
-      echo '</div>';
-      echo "</a>";
-    }
-    echo '</div>';
-  } else {
-    $uploadPath = ($type === 'events') ? 'upload-file.php' : 'upload-data.php';
-    echo "<div class=\"mb-3\">$emptyText. <a href=\"{$base_url}/$uploadPath\" class=\"btn btn-sm btn-outline-secondary ms-2\">Upload</a></div>";
-  }
-}
 function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not available')
 {
   // Icon mapping
@@ -93,31 +56,7 @@ function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not availa
 
       $org = htmlspecialchars($doc['venue'] ?? $doc['organization'] ?? '');
       $time = $doc['file_datetime'] ?? $doc['updated_at'] ?? '';
-      $timeFormatted = 'N/A';
-
-      if ($time) {
-        $cleanTime = trim($time);
-
-        try {
-          if (preg_match('/^\d{13}$/', $cleanTime)) {
-            // Milliseconds timestamp
-            $timestampInSeconds = (int)($cleanTime / 1000);
-            $dt = new DateTime();
-            $dt->setTimestamp($timestampInSeconds);
-          } else {
-            // ISO 8601 string (strip milliseconds if present)
-            $cleanTime = preg_replace('/\.\d+/', '', $cleanTime);
-            $cleanTime = preg_replace('/([+-]\d{2}):(\d{2})$/', '$1$2', $cleanTime);
-            $dt = new DateTime($cleanTime);
-          }
-
-          // Optional: convert to your local timezone
-          $dt->setTimezone(new DateTimeZone('America/New_York'));
-          $timeFormatted = $dt->format('M j, Y');
-        } catch (Exception $e) {
-          $timeFormatted = 'N/A';
-        }
-      }
+      $timeFormatted = smartFormatDate($time);
 
       $slugType = str_replace('_', '-', $type);
       $link = "{$base_url}/{$slugType}/{$doc['slug']}";

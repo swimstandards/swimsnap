@@ -104,3 +104,41 @@ function sort_strokes_by_standard_order(array $strokes): array
 
     return $strokes;
 }
+
+function smartFormatDate($input, $format = 'M j, Y', $timezone = 'America/New_York')
+{
+    if (empty($input)) return 'N/A';
+
+    $input = trim($input);
+
+    try {
+        $tz = new DateTimeZone($timezone);
+
+        // Millisecond timestamp
+        if (preg_match('/^\d{13}$/', $input)) {
+            $timestampInSeconds = (int)($input / 1000);
+            $dt = new DateTime('@' . $timestampInSeconds);
+            $dt->setTimezone($tz);
+        }
+        // 10-digit Unix timestamp
+        elseif (preg_match('/^\d{10}$/', $input)) {
+            $dt = new DateTime('@' . $input);
+            $dt->setTimezone($tz);
+        }
+        // Date-only string (like 5/15/2025)
+        elseif (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $input)) {
+            // Append time to force interpretation as local
+            $dt = DateTime::createFromFormat('n/j/Y H:i:s', $input . ' 00:00:00', $tz);
+        }
+        // Other formats (ISO, etc.)
+        elseif (strtotime($input) !== false) {
+            $dt = new DateTime($input, $tz);
+        } else {
+            return 'N/A';
+        }
+
+        return $dt->format($format);
+    } catch (Exception $e) {
+        return 'N/A';
+    }
+}
