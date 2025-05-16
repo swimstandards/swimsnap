@@ -47,6 +47,26 @@ function handle_text_upload(string $content): array
     'events'        => 'events' // handled by upload-file-handler.php
   ];
 
+  // Find the first HY-TEK header line
+  $start_index = null;
+  foreach ($lines as $i => $line) {
+    if (stripos($line, 'HY-TEK') !== false && preg_match('/-?\s*HY-TEK.*MEET MANAGER/i', $line)) {
+      $start_index = $i;
+      break;
+    }
+  }
+
+  // Error if no HY-TEK line found
+  if ($start_index === null) {
+    return [
+      'status' => 'error',
+      'message' => '❌ Error: HY-TEK header not found. Unsupported file format.'
+    ];
+  }
+
+  // Slice from first valid HY-TEK line onward
+  $lines = array_slice($lines, $start_index);
+
   // Try to get org and file_datetime from first line
   foreach ($lines as $index => $line) {
     $line = trim($line);

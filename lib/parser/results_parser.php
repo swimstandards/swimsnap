@@ -215,6 +215,36 @@ function parse_result_line($line)
     ];
   }
 
+  // Prelim-style fallback: rank, name, age, FULL team name, one time (prelim/final), optional note
+  if (preg_match('/^\*?(\d+)\s+([^,]+),\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+(\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)(?:\s+([A-Z]{2,6}))?$/', $line, $m)) {
+    return [
+      "rank" => $m[1],
+      "name" => trim($m[2]) . ' ' . trim($m[3]),
+      "age" => (int)$m[4],
+      "team" => trim($m[5]),
+      "seed_time" => null,
+      "result_time" => $m[6],
+      "note" => $m[7] ?? null,
+      "qualified" => false,
+      "relay" => null
+    ];
+  }
+
+  // // fallback: rank, last, first, age, team, final_time, note and with optional asterisk before rank
+  if (preg_match('/^\*?(\d+)\s+([^,]+),\s+(.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+(\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)\s+([A-Z]{2,4})$/i', $line, $m)) {
+    return [
+      "rank" => $m[1],
+      "name" => trim($m[2]) . ' ' . trim($m[3]),
+      "age" => (int)$m[4],
+      "team" => $m[5],
+      "seed_time" => null,
+      "result_time" => $m[6],
+      "note" => $m[7],
+      "qualified" => false,
+      "relay" => null
+    ];
+  }
+
   return null;
 }
 
