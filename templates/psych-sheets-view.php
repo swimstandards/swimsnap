@@ -1,4 +1,9 @@
-<?php $this->layout('layout', ['title' => $meet_info['meet_name'] ?? 'Psych Sheet']) ?>
+<?php $this->layout('layout', [
+  'title' => $meet_info['meet_name'] ?? 'Psych Sheet',
+  'meta_title' => ($meet_info['meet_name'] ?? 'Psych Sheet') . ' – Psych Sheet',
+  'meta_description' => 'View the psych sheet for ' . ($meet_info['meet_name'] ?? 'this meet') . ', including seeded entries and swimmer rankings before the competition begins.',
+  'meta_canonical_url' => $base_url . '/psych-sheets/' . $slug
+]) ?>
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">

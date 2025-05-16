@@ -4,12 +4,20 @@
   <div class="bg-light border-top border-bottom py-3">
     <div class="container text-center">
       <a href="https://swimsnap.com/meet/2025-ez-lc-speedo-super-sectional-2025-05-15" rel="noopener" class="text-decoration-none">
-        <strong>🚨 Meet in Progress:</strong> <span class="text-primary">2025 EZ LC Speedo Super Sectional (May 15–18)</span> · View Meet Central →
+        <strong>🚨 Meet in Progress:</strong> <span class="text-primary">2025 EZ LC Speedo Super Sectional (May 15–18)</span> ·
+        <span class="d-none d-sm-inline">View</span> Meet Central →
       </a>
     </div>
   </div>
 
-  <div class="container-lg py-5">
+  <div class="container-lg py-5 position-relative">
+    <a href="https://github.com/swimstandards/swimsnap" target="_blank" rel="noopener"
+      class="position-absolute top-0 end-0 mt-3 me-3 text-white text-decoration-none d-flex align-items-center gap-1"
+      title="View or contribute on GitHub">
+      <i class="bi bi-github fs-3"></i>
+      <span class="d-none d-md-inline">GitHub</span>
+    </a>
+
     <img src="<?= $base_url ?>/images/logo.png" alt="SwimSnap Logo" style="height: 100px; margin-bottom: 0.5rem;">
     <h1 class="display-5 fw-bold mb-2">SwimSnap</h1>
     <p class="lead mb-4">Turn Swim Meet Files Into Web Pages — In a Snap!</p>
@@ -41,43 +49,48 @@
 </div>
 
 <div class="container-lg py-5">
+
   <div class="row row-cols-1 row-cols-md-2 g-4">
     <div class="col">
-      <div class="card h-100 shadow-sm">
+      <div class="card h-100 shadow-sm position-relative">
+        <a href="<?= $base_url ?>/events" class="stretched-link"></a>
         <div class="card-body">
           <h5 class="card-title"><i class="bi bi-calendar-event me-1"></i> Event Schedules</h5>
           <p class="card-text">Explore session timelines and event orders by meet.</p>
-          <a href="<?= $base_url ?>/events" class="btn btn-outline-primary">View Events</a>
+          <span class="btn btn-outline-primary btn-fake-hover">View Events</span>
         </div>
       </div>
     </div>
 
     <div class="col">
-      <div class="card h-100 shadow-sm">
+      <div class="card h-100 shadow-sm position-relative">
+        <a href="<?= $base_url ?>/psych-sheets" class="stretched-link"></a>
         <div class="card-body">
           <h5 class="card-title"><i class="bi bi-people-fill me-1"></i> Psych Sheets</h5>
           <p class="card-text">Preview seeded entries and swimmer rankings before the meet.</p>
-          <a href="<?= $base_url ?>/psych-sheets" class="btn btn-outline-primary">View Psych Sheets</a>
+          <span class="btn btn-outline-primary btn-fake-hover">View Psych Sheets</span>
         </div>
       </div>
     </div>
 
     <div class="col">
-      <div class="card h-100 shadow-sm">
+      <div class="card h-100 shadow-sm position-relative">
+        <a href="<?= $base_url ?>/heat-sheets" class="stretched-link"></a>
         <div class="card-body">
           <h5 class="card-title"><i class="bi bi-list-ol me-1"></i> Heat Sheets</h5>
           <p class="card-text">See lane assignments and heats once the meet is underway.</p>
-          <a href="<?= $base_url ?>/heat-sheets" class="btn btn-outline-primary">View Heat Sheets</a>
+          <span class="btn btn-outline-primary btn-fake-hover">View Heat Sheets</span>
         </div>
       </div>
     </div>
 
     <div class="col">
-      <div class="card h-100 shadow-sm">
+      <div class="card h-100 shadow-sm position-relative">
+        <a href="<?= $base_url ?>/results" class="stretched-link"></a>
         <div class="card-body">
           <h5 class="card-title"><i class="bi bi-clipboard-check me-1"></i> Results</h5>
           <p class="card-text">View session-based results — prelims, finals, and live updates from the meet.</p>
-          <a href="<?= $base_url ?>/results" class="btn btn-outline-primary">View Results</a>
+          <span class="btn btn-outline-primary btn-fake-hover">View Results</span>
         </div>
       </div>
     </div>

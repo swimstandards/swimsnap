@@ -1,4 +1,9 @@
-<?php $this->layout('layout', ['title' => $meet_info['sheet_name'] ?? 'Heat Sheet']) ?>
+<?php $this->layout('layout', [
+  'title' => $meet_info['sheet_name'] ?? 'Heat Sheet',
+  'meta_title' => ($meet_info['sheet_name'] ?? 'Heat Sheet') . ' – ' . $meet_info['meet_name'],
+  'meta_description' => 'Heat sheet for ' . $meet_info['meet_name'] . ' including lane assignments and heat-by-heat breakdowns.',
+  'meta_canonical_url' => $base_url . '/heat-sheets/' . $slug
+]) ?>
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">

@@ -1,4 +1,9 @@
-<?php $this->layout('layout', ['title' => 'Heat Sheets']) ?>
+<?php $this->layout('layout', [
+  'title' => 'Heat Sheets',
+  'meta_title' => 'Swim Meet Heat Sheets',
+  'meta_description' => 'Browse heat sheets for recent swim meets. View lane assignments, heat numbers, and swimmer placements.',
+  'meta_canonical_url' => $base_url . '/heat-sheets'
+]) ?>
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">
@@ -18,7 +23,7 @@
       <div class="card h-100 shadow-sm">
         <div class="card-body d-flex flex-column">
           <h5 class="card-title mb-1">
-            <a href="<?= $base_url ?>/heat-sheets/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-dark">
+            <a href="<?= $base_url ?>/heat-sheets/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-blue">
               <?= htmlspecialchars($m['sheet_name']) ?>
             </a>
           </h5>

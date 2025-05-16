@@ -140,6 +140,12 @@ a:hover {
   border-color: #52a0d7;
 }
 
+.card:hover .btn-fake-hover {
+  background-color: var(--bs-primary);
+  color: #fff;
+  border-color: var(--bs-primary);
+}
+
 .resultsContainer {
   min-height: 300px;
 }

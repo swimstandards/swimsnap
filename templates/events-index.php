@@ -1,4 +1,9 @@
-<?php $this->layout('layout', ['title' => 'Meet Events']) ?>
+<?php $this->layout('layout', [
+  'title' => 'Event Schedules',
+  'meta_title' => 'Swim Meet Event Schedules',
+  'meta_description' => 'View session timelines and event orders for recent swim meets across the country.',
+  'meta_canonical_url' => $base_url . '/events'
+]) ?>
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">
@@ -18,7 +23,7 @@
       <div class="card h-100 shadow-sm">
         <div class="card-body">
           <h5 class="card-title line-clamp-2">
-            <a href="<?= $base_url ?>/events/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-dark">
+            <a href="<?= $base_url ?>/events/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-blue">
               <?= htmlspecialchars($m['title']) ?>
             </a>
           </h5>

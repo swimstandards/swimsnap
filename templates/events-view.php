@@ -1,4 +1,9 @@
-<?php $this->layout('layout', ['title' => 'Event Order']) ?>
+<?php $this->layout('layout', [
+  'title' => 'Event Order',
+  'meta_title' => $meet_info['meet_name'] . ' – Event Schedule',
+  'meta_description' => 'View the full event order and session timeline for ' . $meet_info['meet_name'] . '. Filter by stroke, age group, or gender.',
+  'meta_canonical_url' => $base_url . '/events/' . $slug
+]) ?>
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">

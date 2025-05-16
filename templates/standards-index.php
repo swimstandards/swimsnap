@@ -23,7 +23,7 @@
       <div class="card h-100 shadow-sm">
         <div class="card-body">
           <h5 class="card-title line-clamp-2">
-            <a href="<?= $base_url ?>/standards/<?= $item['slug'] ?>" class="stretched-link text-decoration-none text-dark">
+            <a href="<?= $base_url ?>/standards/<?= $item['slug'] ?>" class="stretched-link text-decoration-none text-blue">
               <?= htmlspecialchars($item['meet_name']) ?>
             </a>
           </h5>

@@ -1,4 +1,9 @@
-<?php $this->layout('layout', ['title' => 'Results']) ?>
+<?php $this->layout('layout', [
+  'title' => 'Results',
+  'meta_title' => ($meet_info['sheet_name'] ?? 'Results') . ' – ' . ($meet_info['meet_name'] ?? 'Swim Meet'),
+  'meta_description' => 'View detailed results for ' . ($meet_info['meet_name'] ?? 'this meet') . ', including prelims, finals, times, and placements.',
+  'meta_canonical_url' => $base_url . '/results/' . $slug
+]) ?>
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">

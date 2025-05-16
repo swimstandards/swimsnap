@@ -1,4 +1,9 @@
-<?php $this->layout('layout', ['title' => 'Psych Sheets']) ?>
+<?php $this->layout('layout', [
+  'title' => 'Psych Sheets',
+  'meta_title' => 'Swim Meet Psych Sheets',
+  'meta_description' => 'Preview psych sheets for upcoming and recent swim meets. See seeded entries, swimmer rankings, and qualifying times.',
+  'meta_canonical_url' => $base_url . '/psych-sheets'
+]) ?>
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb mb-4">
@@ -19,7 +24,7 @@
       <div class="card h-100 shadow-sm">
         <div class="card-body d-flex flex-column">
           <h5 class="card-title line-clamp-2">
-            <a href="<?= $base_url ?>/psych-sheets/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-dark">
+            <a href="<?= $base_url ?>/psych-sheets/<?= $m['slug'] ?>" class="stretched-link text-decoration-none text-blue">
               <?= htmlspecialchars($m['title']) ?>
             </a>
           </h5>
