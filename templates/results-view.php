@@ -164,14 +164,17 @@
 
       if (!isFiltered) {
         document.querySelectorAll('table[id^="eventTable"]').forEach((table) => {
+          const rowCount = table.querySelectorAll('tbody tr').length;
+          const enablePagination = rowCount >= 25;
+
           const dt = $(table).DataTable({
             responsive: true,
-            paging: true,
+            paging: enablePagination,
+            searching: enablePagination,
+            lengthChange: enablePagination,
+            info: enablePagination,
             pageLength: 25,
-            lengthChange: true,
-            searching: true,
             ordering: true,
-            info: true,
             autoWidth: false,
             columnDefs: [{
                 targets: 0,
@@ -183,6 +186,7 @@
               }
             ]
           });
+
           allTables.set(table, dt);
           dt.columns.adjust().draw(false);
         });

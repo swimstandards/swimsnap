@@ -462,6 +462,11 @@ function process_results($content)
     $result = parse_result_line($line);
 
     if ($result) {
+
+      if ($current_event && preg_match('/Time Trial/', $current_event['event_name'])) {
+        $current_round = 'Time Trials';
+      }
+
       $result['round'] = $current_round;
       $current_results[] = $result;
       continue;

@@ -187,6 +187,9 @@ function process_heat_sheet($content)
     $current_event = null;
     $current_heat = null;
 
+    $in_alternates = false; // 🔁 Alternate block flag
+    $alt_counter = 1;       // 🔁 Alternate numbering
+
     foreach ($lines as $line) {
         $line = trim($line);
 
@@ -200,8 +203,16 @@ function process_heat_sheet($content)
             continue;
         }
 
+        // Detect start of Alternates section
+        if (stripos($line, 'Alternates') === 0) {
+            $in_alternates = true;
+            $alt_counter = 1;
+            continue;
+        }
+
         // Event start
         if (preg_match('/^(Event\s+\d+|#\d+)\s+(Boys|Girls|Men|Women|Mixed)\b/', $line)) {
+            $in_alternates = false; // 🔁 Reset alternates on new event
             if ($current_event) {
                 if ($current_heat && (!empty($current_heat['swimmers']) || !empty($current_heat['teams']))) {
                     $current_event['heats'][] = $current_heat;
@@ -216,6 +227,7 @@ function process_heat_sheet($content)
 
         // Heat header
         if (preg_match('/^Heat \d+/', $line)) {
+            $in_alternates = false; // 🔁 Reset alternates on new heat
             if ($current_event && $current_heat && (!empty($current_heat['swimmers']) || !empty($current_heat['teams']))) {
                 $current_event['heats'][] = $current_heat;
             }
@@ -227,12 +239,18 @@ function process_heat_sheet($content)
         if ($current_event && $current_heat) {
             $swimmer = parse_swimmer_line($line);
             if ($swimmer) {
+                if ($in_alternates) {
+                    $swimmer['lane'] = 'Alt. ' . $alt_counter++; // 👈 append Alt. to lane
+                }
                 $current_heat['swimmers'][] = $swimmer;
                 continue;
             }
 
             $team = parse_team_line($line);
             if ($team) {
+                if ($in_alternates) {
+                    $team['lane'] = 'Alt. ' . $alt_counter++; // 👈 append Alt. to lane
+                }
                 $current_heat['teams'][] = $team;
                 continue;
             }
