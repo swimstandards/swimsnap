@@ -1,14 +1,14 @@
 <?php $this->layout('layout', ['title' => 'SwimSnap', 'full_width' => true]) ?>
 
 <div class="hero-banner-simple text-center">
-  <div class="bg-light border-top border-bottom py-3">
+  <!-- <div class="bg-light border-top border-bottom py-3">
     <div class="container text-center">
       <a href="https://swimsnap.com/meet/2025-ez-lc-speedo-super-sectional-2025-05-15" rel="noopener" class="text-decoration-none">
         <strong>🚨 Meet in Progress:</strong> <span class="text-primary">2025 EZ LC Speedo Super Sectional (May 15–18)</span> ·
         <span class="d-none d-sm-inline">View</span> Meet Central →
       </a>
     </div>
-  </div>
+  </div> -->
 
   <div class="container-lg py-5 position-relative">
     <a href="https://github.com/swimstandards/swimsnap" target="_blank" rel="noopener"
