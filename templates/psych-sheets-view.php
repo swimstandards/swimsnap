@@ -20,8 +20,8 @@
 <?php include __DIR__ . '/shared/meta-block.php' ?>
 
 
-<div class="mb-3 d-flex">
-  <div class="input-group" style="max-width: 400px;">
+<div class="mb-3 d-flex flex-wrap align-items-center">
+  <div class="input-group me-2" style="max-width: 400px;">
     <span class="input-group-text"><i class="bi bi-search"></i></span>
     <input
       type="text"
@@ -38,6 +38,13 @@
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
+  <button
+    type="button"
+    class="btn btn-outline-primary"
+    id="showAllBtn"
+    style="display: none;">
+    Show All Events
+  </button>
 </div>
 
 <div class="resultsContainer" id="psychSheetAccordionContainer"></div>
@@ -64,10 +71,16 @@
     return text.replace(regex, '<mark>$1</mark>');
   }
 
+  // function updateClearIcon() {
+  //   const clearBtn = document.getElementById('clearSearchBtn');
+  //   const inputVal = document.getElementById('searchInput').value.trim();
+  //   clearBtn.style.display = inputVal.length > 0 ? '' : 'none';
+  // }
+
   function updateClearIcon() {
-    const clearBtn = document.getElementById('clearSearchBtn');
     const inputVal = document.getElementById('searchInput').value.trim();
-    clearBtn.style.display = inputVal.length > 0 ? '' : 'none';
+    document.getElementById('clearSearchBtn').style.display = inputVal.length > 0 ? '' : 'none';
+    document.getElementById('showAllBtn').style.display = inputVal.length > 0 ? '' : 'none';
   }
 
   function showLoading() {
@@ -98,11 +111,13 @@
       header.id = `heading${idx}`;
 
       const button = document.createElement('button');
-      button.className = 'accordion-button collapsed';
+      button.className = 'accordion-button';
+      if (!currentSearchTerm) button.classList.add('collapsed');
+
       button.type = 'button';
       button.setAttribute('data-bs-toggle', 'collapse');
       button.setAttribute('data-bs-target', `#collapse${idx}`);
-      button.setAttribute('aria-expanded', 'false');
+      button.setAttribute('aria-expanded', !!currentSearchTerm); // auto expand if searching
       button.setAttribute('aria-controls', `collapse${idx}`);
       button.textContent = `${event.event_number ? `Event ${event.event_number}: ` : ''}${event.gender} ${event.event_name}`;
 
@@ -111,7 +126,7 @@
 
       const collapse = document.createElement('div');
       collapse.id = `collapse${idx}`;
-      collapse.className = 'accordion-collapse collapse';
+      collapse.className = 'accordion-collapse collapse' + (currentSearchTerm ? ' show' : '');
       collapse.setAttribute('aria-labelledby', `heading${idx}`);
 
       const body = document.createElement('div');
@@ -125,38 +140,37 @@
         const thead = document.createElement('thead');
         thead.className = 'table-light';
         thead.innerHTML = `<tr>
-          <th>Rank</th>
-          ${event.seeds[0].name ? `
-            <th>Name</th>
-            <th>Age</th>
-            <th>Team</th>
-            <th>Seed Time</th>` : `
-            <th>Team</th>
-            <th>Relay</th>
-            <th>Seed Time</th>`
-          }
-        </tr>`;
+        <th>Rank</th>
+        ${event.seeds[0].name ? `
+          <th>Name</th>
+          <th>Age</th>
+          <th>Team</th>
+          <th>Seed Time</th>` : `
+          <th>Team</th>
+          <th>Relay</th>
+          <th>Seed Time</th>`
+        }
+      </tr>`;
         table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
         event.seeds.forEach(s => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${s.rank}</td>
-            ${s.name ? `
-              <td>${highlightMatch(s.name)}</td>
-              <td>${s.age}</td>
-              <td>${highlightMatch(s.team)}</td>
-              <td>${s.seed_time}</td>` : `
-              <td>${highlightMatch(s.team)}</td>
-              <td>${s.relay}</td>
-              <td>${s.seed_time}</td>`
-            }
-          `;
+          <td>${s.rank}</td>
+          ${s.name ? `
+            <td>${s.name}</td>
+            <td>${s.age}</td>
+            <td>${s.team}</td>
+            <td>${s.seed_time}</td>` : `
+            <td>${s.team}</td>
+            <td>${s.relay}</td>
+            <td>${s.seed_time}</td>`
+          }
+        `;
           tbody.appendChild(tr);
         });
         table.appendChild(tbody);
-
         body.appendChild(table);
       } else {
         body.innerHTML = '<p class="text-muted">No seed data available.</p>';
@@ -169,39 +183,74 @@
 
     container.appendChild(accordion);
 
-    if (!currentSearchTerm) {
-      document.querySelectorAll('table[id^="eventTable"]').forEach((table) => {
-        const rowCount = table.querySelectorAll('tbody tr').length;
-        const usePaging = rowCount > 25;
-        const dt = $(table).DataTable({
-          responsive: {
-            details: false
-          },
-          paging: usePaging,
-          pageLength: 25,
-          lengthChange: usePaging,
-          searching: true,
-          ordering: true,
-          info: usePaging,
-          autoWidth: false,
-          columnDefs: [{
-            targets: 0,
-            type: 'num'
-          }]
-        });
-        allTables.set(table, dt);
-        dt.columns.adjust().draw(false);
+    // Initialize DataTables
+    document.querySelectorAll('table[id^="eventTable"]').forEach((table) => {
+      const rowCount = table.querySelectorAll('tbody tr').length;
+      const usePaging = rowCount > 25;
+
+      const dt = $(table).DataTable({
+        responsive: {
+          details: false
+        },
+        paging: usePaging,
+        pageLength: 25,
+        lengthChange: usePaging,
+        searching: true,
+        ordering: true,
+        info: usePaging,
+        autoWidth: false,
+        destroy: true, // ensure old instances don't persist
+        columnDefs: [{
+          targets: 0,
+          type: 'num'
+        }]
       });
 
-      document.querySelectorAll('.accordion-collapse').forEach(panel => {
-        panel.addEventListener('shown.bs.collapse', function() {
-          document.querySelectorAll('table[id^="eventTable"]').forEach(table => {
-            const dt = allTables.get(table);
-            if (dt) dt.columns.adjust().responsive.recalc();
-          });
+      // 🔧 Apply or reset search
+      if (currentSearchTerm) {
+        dt.search(currentSearchTerm).draw();
+      } else {
+        dt.search('').draw(); // full reset
+      }
+
+      allTables.set(table, dt);
+      dt.columns.adjust().draw(false);
+    });
+
+    document.querySelectorAll('.accordion-collapse').forEach(panel => {
+      panel.addEventListener('shown.bs.collapse', function() {
+        document.querySelectorAll('table[id^="eventTable"]').forEach(table => {
+          const dt = allTables.get(table);
+          if (dt) dt.columns.adjust().responsive.recalc();
         });
       });
+    });
+
+    const dt = $(table).DataTable({
+      responsive: {
+        details: false
+      },
+      paging: usePaging,
+      pageLength: 25,
+      lengthChange: usePaging,
+      searching: true,
+      ordering: true,
+      info: usePaging,
+      autoWidth: false,
+      columnDefs: [{
+        targets: 0,
+        type: 'num'
+      }]
+    });
+
+    if (currentSearchTerm) {
+      dt.search(currentSearchTerm).draw();
+    } else {
+      dt.search('').draw(); // Clear search when not filtering
     }
+
+    allTables.set(table, dt);
+    dt.columns.adjust().draw(false);
   }
 
   function handleSearch() {
@@ -221,7 +270,7 @@
       const eventText = `${event.gender || ''} ${event.event_name || ''}`.toLowerCase();
       const eventMatches = tokens.every(t => eventText.includes(t));
 
-      const matchedSeeds = (event.seeds || []).filter(seed => {
+      const hasMatchingSeed = (event.seeds || []).some(seed => {
         const nameText = (seed.name || '').toLowerCase();
         const teamText = (seed.team || '').toLowerCase();
         const normName = normalizeName(nameText);
@@ -232,11 +281,8 @@
         );
       });
 
-      if (matchedSeeds.length || eventMatches) {
-        return {
-          ...event,
-          seeds: eventMatches && !matchedSeeds.length ? event.seeds : matchedSeeds
-        };
+      if (eventMatches || hasMatchingSeed) {
+        return event; // ✅ keep all seeds — don't filter here
       }
       return null;
     }).filter(Boolean);
@@ -271,6 +317,20 @@
       updateClearIcon();
       handleSearch();
     });
+
+
+    const showAllBtn = document.getElementById('showAllBtn');
+    showAllBtn.addEventListener('click', function() {
+      document.getElementById('searchInput').value = '';
+      currentSearchTerm = '';
+      updateClearIcon();
+      handleSearch();
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+
   });
 </script>
 <?php $this->end() ?>
