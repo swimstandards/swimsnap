@@ -16,6 +16,7 @@
 </nav>
 
 <h1>Psych Sheet</h1>
+
 <?php include __DIR__ . '/shared/note-report-block.php' ?>
 <?php include __DIR__ . '/shared/meta-block.php' ?>
 

@@ -143,6 +143,7 @@
   <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
   <script src="https://cdn.datatables.net/responsive/2.4.1/js/responsive.bootstrap5.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script>
     $(function() {
@@ -233,6 +234,32 @@
             setTimeout(() => feedback.style.display = 'none', 2000);
           });
         });
+      }
+    });
+  </script>
+
+  <script>
+    const urlToShare = window.location.href;
+
+    new QRCode(document.getElementById("qrcode"), {
+      text: urlToShare,
+      width: 100,
+      height: 100,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    const copyBtn = document.getElementById('copyLinkBtn');
+    copyBtn?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(urlToShare);
+        copyBtn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+        setTimeout(() => {
+          copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy Link';
+        }, 2000);
+      } catch (err) {
+        alert('Failed to copy');
       }
     });
   </script>
