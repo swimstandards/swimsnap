@@ -39,13 +39,7 @@
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
-  <button
-    type="button"
-    class="btn btn-outline-primary"
-    id="showAllBtn"
-    style="display: none;">
-    Show All Events
-  </button>
+
 </div>
 
 <div class="resultsContainer" id="psychSheetAccordionContainer"></div>
@@ -81,7 +75,6 @@
   function updateClearIcon() {
     const inputVal = document.getElementById('searchInput').value.trim();
     document.getElementById('clearSearchBtn').style.display = inputVal.length > 0 ? '' : 'none';
-    document.getElementById('showAllBtn').style.display = inputVal.length > 0 ? '' : 'none';
   }
 
   function showLoading() {
@@ -172,7 +165,13 @@
           tbody.appendChild(tr);
         });
         table.appendChild(tbody);
-        body.appendChild(table);
+
+        const wrapperDiv = document.createElement('div');
+        wrapperDiv.className = 'table-responsive'; // Bootstrap horizontal scroll
+        wrapperDiv.appendChild(table);
+        body.appendChild(wrapperDiv);
+
+
       } else {
         body.innerHTML = '<p class="text-muted">No seed data available.</p>';
       }
@@ -190,9 +189,7 @@
       const usePaging = rowCount > 25;
 
       const dt = $(table).DataTable({
-        responsive: {
-          details: false
-        },
+        responsive: false,
         paging: usePaging,
         pageLength: 25,
         lengthChange: usePaging,
@@ -216,6 +213,37 @@
 
       allTables.set(table, dt);
       dt.columns.adjust().draw(false);
+
+      // ➕ Add Clear button next to built-in search input
+      const wrapper = $(table).closest('.dataTables_wrapper');
+      const filter = wrapper.find('.dataTables_filter');
+      const input = filter.find('input');
+
+      // Create clear button if not already added
+      if (!filter.find('.dt-clear-btn').length) {
+        const clearBtn = $('<button>')
+          .addClass('btn btn-sm btn-outline-secondary dt-clear-btn ms-2')
+          .text('X')
+          .attr('type', 'button')
+          .css('display', input.val().trim() ? '' : 'none') // show only if needed
+          .on('click', () => {
+            dt.search('').draw();
+            input.val('');
+            clearBtn.hide();
+          });
+
+        filter.append(clearBtn);
+
+        // Watch input changes to toggle button visibility
+        input.on('input', () => {
+          if (input.val().trim()) {
+            clearBtn.show();
+          } else {
+            clearBtn.hide();
+          }
+        });
+      }
+
     });
 
     document.querySelectorAll('.accordion-collapse').forEach(panel => {
@@ -227,31 +255,31 @@
       });
     });
 
-    const dt = $(table).DataTable({
-      responsive: {
-        details: false
-      },
-      paging: usePaging,
-      pageLength: 25,
-      lengthChange: usePaging,
-      searching: true,
-      ordering: true,
-      info: usePaging,
-      autoWidth: false,
-      columnDefs: [{
-        targets: 0,
-        type: 'num'
-      }]
-    });
+    // const dt = $(table).DataTable({
+    //   responsive: {
+    //     details: false
+    //   },
+    //   paging: usePaging,
+    //   pageLength: 25,
+    //   lengthChange: usePaging,
+    //   searching: true,
+    //   ordering: true,
+    //   info: usePaging,
+    //   autoWidth: false,
+    //   columnDefs: [{
+    //     targets: 0,
+    //     type: 'num'
+    //   }]
+    // });
 
-    if (currentSearchTerm) {
-      dt.search(currentSearchTerm).draw();
-    } else {
-      dt.search('').draw(); // Clear search when not filtering
-    }
+    // if (currentSearchTerm) {
+    //   dt.search(currentSearchTerm).draw();
+    // } else {
+    //   dt.search('').draw(); // Clear search when not filtering
+    // }
 
-    allTables.set(table, dt);
-    dt.columns.adjust().draw(false);
+    // allTables.set(table, dt);
+    // dt.columns.adjust().draw(false);
   }
 
   function handleSearch() {
@@ -320,17 +348,7 @@
     });
 
 
-    const showAllBtn = document.getElementById('showAllBtn');
-    showAllBtn.addEventListener('click', function() {
-      document.getElementById('searchInput').value = '';
-      currentSearchTerm = '';
-      updateClearIcon();
-      handleSearch();
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
+
 
   });
 </script>

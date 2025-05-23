@@ -190,6 +190,14 @@ table.dataTable th.sorting {
   color: #16649e;
 }
 
+.dataTables_filter input {
+  font-size: 1rem;
+}
+
+.dt-clear-btn {
+  margin-bottom: 5px;
+}
+
 @media (max-width: 767.98px) {
   .dataTables_wrapper .row > div {
     margin-bottom: 0.5rem;
