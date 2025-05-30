@@ -20,26 +20,40 @@
 <?php include __DIR__ . '/shared/note-report-block.php' ?>
 <?php include __DIR__ . '/shared/meta-block.php' ?>
 
-
-<div class="mb-3 d-flex flex-wrap align-items-center">
+<!-- Desktop version -->
+<div class="d-none d-md-flex mb-3 flex-wrap align-items-center">
   <div class="input-group me-2" style="max-width: 400px;">
-    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <span class="input-group-text bg-primary text-white"><i class="bi bi-search"></i></span>
     <input
       type="text"
-      id="searchInput"
+      id="searchInputDesktop"
       class="form-control"
       placeholder="Search by event, swimmer or team..."
       autocomplete="off">
     <button
       type="button"
       class="btn btn-outline-secondary"
-      id="clearSearchBtn"
+      id="clearSearchBtnDesktop"
       title="Clear"
       style="display: none;">
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
+</div>
 
+<!-- Mobile version -->
+<div class="d-flex d-md-none mb-3 flex-column">
+  <div class="input-group" style="width: 100%;">
+    <span class="input-group-text bg-primary text-white"><i class="bi bi-search"></i></span>
+    <input
+      type="search"
+      inputmode="search"
+      id="searchInputMobile"
+      class="form-control"
+      placeholder="Search by event, swimmer or team..."
+      autocomplete="off"
+      enterkeyhint="search">
+  </div>
 </div>
 
 <div class="resultsContainer" id="psychSheetAccordionContainer"></div>
@@ -73,8 +87,13 @@
   // }
 
   function updateClearIcon() {
-    const inputVal = document.getElementById('searchInput').value.trim();
-    document.getElementById('clearSearchBtn').style.display = inputVal.length > 0 ? '' : 'none';
+    // const inputVal = document.getElementById('searchInput').value.trim();
+    // document.getElementById('clearSearchBtn').style.display = inputVal.length > 0 ? '' : 'none';
+    const input = document.getElementById('searchInputDesktop');
+    const clearBtn = document.getElementById('clearSearchBtnDesktop');
+    if (input && clearBtn) {
+      clearBtn.style.display = input.value.trim().length > 0 ? '' : 'none';
+    }
   }
 
   function showLoading() {
@@ -137,7 +156,7 @@
         <th>Rank</th>
         ${event.seeds[0].name ? `
           <th>Name</th>
-          <th>Age</th>
+         <th>Age/Yr</th>
           <th>Team</th>
           <th>Seed Time</th>` : `
           <th>Team</th>
@@ -154,7 +173,7 @@
           <td>${s.rank}</td>
           ${s.name ? `
             <td>${s.name}</td>
-            <td>${s.age}</td>
+            <td>${s.age !== undefined ? s.age : (s.year !== undefined ? s.year : '')}</td>
             <td>${s.team}</td>
             <td>${s.seed_time}</td>` : `
             <td>${s.team}</td>
@@ -220,29 +239,29 @@
       const input = filter.find('input');
 
       // Create clear button if not already added
-      if (!filter.find('.dt-clear-btn').length) {
-        const clearBtn = $('<button>')
-          .addClass('btn btn-sm btn-outline-secondary dt-clear-btn ms-2')
-          .text('X')
-          .attr('type', 'button')
-          .css('display', input.val().trim() ? '' : 'none') // show only if needed
-          .on('click', () => {
-            dt.search('').draw();
-            input.val('');
-            clearBtn.hide();
-          });
+      // if (!filter.find('.dt-clear-btn').length) {
+      //   const clearBtn = $('<button>')
+      //     .addClass('btn btn-sm btn-outline-secondary dt-clear-btn ms-2')
+      //     .text('X')
+      //     .attr('type', 'button')
+      //     .css('display', input.val().trim() ? '' : 'none') // show only if needed
+      //     .on('click', () => {
+      //       dt.search('').draw();
+      //       input.val('');
+      //       clearBtn.hide();
+      //     });
 
-        filter.append(clearBtn);
+      //   filter.append(clearBtn);
 
-        // Watch input changes to toggle button visibility
-        input.on('input', () => {
-          if (input.val().trim()) {
-            clearBtn.show();
-          } else {
-            clearBtn.hide();
-          }
-        });
-      }
+      //   // Watch input changes to toggle button visibility
+      //   input.on('input', () => {
+      //     if (input.val().trim()) {
+      //       clearBtn.show();
+      //     } else {
+      //       clearBtn.hide();
+      //     }
+      //   });
+      // }
 
     });
 
@@ -282,16 +301,15 @@
     // dt.columns.adjust().draw(false);
   }
 
-  function handleSearch() {
-    const raw = document.getElementById('searchInput').value.trim().toLowerCase();
+  function handleSearch(inputElement) {
+    const raw = inputElement?.value.trim().toLowerCase() || '';
     currentSearchTerm = raw;
     updateClearIcon();
+
     const tokens = raw.split(/\s+/).filter(Boolean);
     if (!tokens.length) {
       showLoading();
-      setTimeout(() => {
-        buildAccordion(parsedEvents);
-      }, 50);
+      setTimeout(() => buildAccordion(parsedEvents), 50);
       return;
     }
 
@@ -310,16 +328,11 @@
         );
       });
 
-      if (eventMatches || hasMatchingSeed) {
-        return event; // ✅ keep all seeds — don't filter here
-      }
-      return null;
+      return (eventMatches || hasMatchingSeed) ? event : null;
     }).filter(Boolean);
 
     showLoading();
-    setTimeout(() => {
-      buildAccordion(filteredEvents);
-    }, 50);
+    setTimeout(() => buildAccordion(filteredEvents), 50);
   }
 
   function debounce(func, wait) {
@@ -332,24 +345,53 @@
 
   document.addEventListener("DOMContentLoaded", function() {
     showLoading();
-    setTimeout(() => {
-      buildAccordion(parsedEvents);
-    }, 50);
+    setTimeout(() => buildAccordion(parsedEvents), 50);
 
+    const searchInputDesktop = document.getElementById('searchInputDesktop');
+    const clearBtnDesktop = document.getElementById('clearSearchBtnDesktop');
+    const searchInputMobile = document.getElementById('searchInputMobile');
 
-    const searchInput = document.getElementById('searchInput');
-    const clearBtn = document.getElementById('clearSearchBtn');
-    searchInput.addEventListener('input', debounce(handleSearch, 300));
-    clearBtn.addEventListener('click', function() {
-      searchInput.value = '';
-      currentSearchTerm = '';
-      updateClearIcon();
-      handleSearch();
-    });
+    // Desktop: live search with debounce
+    if (searchInputDesktop && clearBtnDesktop) {
+      searchInputDesktop.addEventListener('input', debounce(() => {
+        handleSearch(searchInputDesktop);
+      }, 300));
 
+      clearBtnDesktop.addEventListener('click', function() {
+        searchInputDesktop.value = '';
+        currentSearchTerm = '';
+        updateClearIcon();
+        handleSearch(searchInputDesktop);
+      });
+    }
 
-
-
+    // Mobile: search only on Enter
+    if (searchInputMobile) {
+      searchInputMobile.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          handleSearch(searchInputMobile);
+        }
+      });
+    }
   });
+
+  // document.addEventListener("DOMContentLoaded", function() {
+  //   showLoading();
+  //   setTimeout(() => {
+  //     buildAccordion(parsedEvents);
+  //   }, 50);
+
+
+  //   const searchInput = document.getElementById('searchInput');
+  //   const clearBtn = document.getElementById('clearSearchBtn');
+  //   searchInput.addEventListener('input', debounce(handleSearch, 300));
+  //   clearBtn.addEventListener('click', function() {
+  //     searchInput.value = '';
+  //     currentSearchTerm = '';
+  //     updateClearIcon();
+  //     handleSearch();
+  //   });
+
+  // });
 </script>
 <?php $this->end() ?>

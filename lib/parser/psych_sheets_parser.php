@@ -249,10 +249,32 @@ function parse_swimmer_gender_age($line)
     return null;
 }
 
+function parse_swimmer_year_team($line)
+{
+    // e.g. 1 Regan Smith 02 Longhorn Aquatic-ST 2:03.84
+    if (preg_match('/^(\d+)\s+(.+?)\s+(\d{2})\s+(.+?)\s+((?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2})(?:[YLS]?))(?:\s+(.*))?$/', $line, $m)) {
+        $seed_time = $m[5];
+        $note = isset($m[6]) ? trim($m[6]) : "";
+        if ($note && $note !== '_____') {
+            $seed_time .= "($note)";
+        }
+
+        return [
+            "rank" => $m[1],
+            "name" => trim($m[2]),
+            "year" => $m[3],
+            "team" => trim($m[4]),
+            "seed_time" => $seed_time
+        ];
+    }
+    return null;
+}
+
 function parse_swimmer_line($line)
 {
     if ($parsed = parse_swimmer_line_fallback($line)) return $parsed;
     if ($parsed = parse_swimmer_gender_age($line)) return $parsed;
+    if ($parsed = parse_swimmer_year_team($line)) return $parsed;
     if ($parsed = parse_swimmer_full_team($line)) return $parsed;
     if ($parsed = parse_swimmer_abbr_team($line)) return $parsed;
 
@@ -289,6 +311,7 @@ function process_psych_sheet($content)
             $individual_seed_mode = false;
         } elseif (
             stripos($line, "Name Age Team Seed Time") !== false || stripos($line, "Name Seed Age Team Time") !== false
+            ||  stripos($line, "Name Yr Team Seed Time") !== false
         ) {
             $individual_seed_mode = true;
             $relay_seed_mode = false;
