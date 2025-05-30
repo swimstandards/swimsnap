@@ -42,7 +42,7 @@
 </div>
 
 <!-- Mobile version -->
-<div class="d-flex d-md-none mb-3 flex-column">
+<div class="d-flex d-md-none mb-3 flex-column" id="mobileSearchBlock">
   <div class="input-group" style="width: 100%;">
     <span class="input-group-text bg-primary text-white"><i class="bi bi-search"></i></span>
     <input
@@ -53,6 +53,13 @@
       placeholder="Search by event, swimmer or team..."
       autocomplete="off"
       enterkeyhint="search">
+    <button
+      type="button"
+      class="btn btn-primary"
+      id="submitSearchMobile"
+      style="display: none;">
+      Search
+    </button>
   </div>
 </div>
 
@@ -350,8 +357,9 @@
     const searchInputDesktop = document.getElementById('searchInputDesktop');
     const clearBtnDesktop = document.getElementById('clearSearchBtnDesktop');
     const searchInputMobile = document.getElementById('searchInputMobile');
+    const submitSearchMobile = document.getElementById('submitSearchMobile');
 
-    // Desktop: live search with debounce
+    // Desktop search (live debounce)
     if (searchInputDesktop && clearBtnDesktop) {
       searchInputDesktop.addEventListener('input', debounce(() => {
         handleSearch(searchInputDesktop);
@@ -365,34 +373,30 @@
       });
     }
 
-    // Mobile: search only on Enter
+    // Mobile search (Enter or button click)
     if (searchInputMobile) {
+      // Show/hide submit button
+      searchInputMobile.addEventListener('input', function() {
+        submitSearchMobile.style.display = this.value.trim().length > 0 ? '' : 'none';
+      });
+
+      // Keyboard Enter
       searchInputMobile.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
           handleSearch(searchInputMobile);
-          e.preventDefault(); // optional, prevents form submission
-          e.target.blur(); // 👈 force keyboard to hide
+          e.preventDefault();
+          e.target.blur(); // close keyboard
         }
+      });
+
+      // Click "Search" button
+      submitSearchMobile.addEventListener('click', function() {
+        handleSearch(searchInputMobile);
+        searchInputMobile.blur(); // close keyboard
       });
     }
   });
 
-  // document.addEventListener("DOMContentLoaded", function() {
-  //   showLoading();
-  //   setTimeout(() => {
-  //     buildAccordion(parsedEvents);
-  //   }, 50);
-
-
-  //   const searchInput = document.getElementById('searchInput');
-  //   const clearBtn = document.getElementById('clearSearchBtn');
-  //   searchInput.addEventListener('input', debounce(handleSearch, 300));
-  //   clearBtn.addEventListener('click', function() {
-  //     searchInput.value = '';
-  //     currentSearchTerm = '';
-  //     updateClearIcon();
-  //     handleSearch();
-  //   });
 
   // });
 </script>
