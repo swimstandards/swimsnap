@@ -370,6 +370,8 @@
       searchInputMobile.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
           handleSearch(searchInputMobile);
+          e.preventDefault(); // optional, prevents form submission
+          e.target.blur(); // 👈 force keyboard to hide
         }
       });
     }
