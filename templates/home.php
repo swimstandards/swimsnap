@@ -3,7 +3,7 @@
 <div class="hero-banner-simple text-center">
   <div class="bg-light border-top border-bottom py-3">
     <div class="container text-center">
-      <a href="http://localhost/swimsnap/meet/maryland-state-lc-championship-2025-05-30" rel="noopener" class="text-decoration-none">
+      <a href="/meet/maryland-state-lc-championship-2025-05-30" rel="noopener" class="text-decoration-none">
         <strong>🚨 Meet in Progress:</strong> <span class="text-primary">Maryland State LC Championship (5/30–6/1)</span> ·
         <span class="d-none d-sm-inline">View</span> Meet Central →
       </a>
