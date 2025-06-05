@@ -13,7 +13,7 @@ if (!empty($_ENV['MONGODB_URI'])) {
 
   // Only fetch meet where today is between start and end dates
   $doc = $mongo->collection->findOne([
-    'type' => 'psych_sheet', // or 'result' or any type you expect to exist for a current meet
+    'type' => 'psych_sheets', // or 'result' or any type you expect to exist for a current meet
     'meet_start_date' => ['$lte' => $now],
     'meet_end_date' => ['$gte' => $now]
   ], [
