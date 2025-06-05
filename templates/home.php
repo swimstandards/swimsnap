@@ -1,14 +1,17 @@
 <?php $this->layout('layout', ['title' => 'SwimSnap', 'full_width' => true]) ?>
 
 <div class="hero-banner-simple text-center">
-  <div class="bg-light border-top border-bottom py-3">
-    <div class="container text-center">
-      <a href="/meet/maryland-state-lc-championship-2025-05-30" rel="noopener" class="text-decoration-none">
-        <strong>🚨 Meet in Progress:</strong> <span class="text-primary">Maryland State LC Championship (5/30–6/1)</span> ·
-        <span class="d-none d-sm-inline">View</span> Meet Central →
-      </a>
+  <?php if (!empty($currentMeet)): ?>
+    <div class="bg-light border-top border-bottom py-3">
+      <div class="container text-center">
+        <a href="<?= htmlspecialchars($currentMeet['url']) ?>" rel="noopener" class="text-decoration-none">
+          <strong>🚨 Meet in Progress:</strong>
+          <span class="text-primary"><?= htmlspecialchars($currentMeet['name']) ?> (<?= $currentMeet['start'] ?><?= $currentMeet['end'] ? '–' . $currentMeet['end'] : '' ?>)</span> ·
+          <span class="d-none d-sm-inline">View</span> Meet Central →
+        </a>
+      </div>
     </div>
-  </div>
+  <?php endif; ?>
 
   <div class="container-lg py-5 position-relative">
     <a href="https://github.com/swimstandards/swimsnap" target="_blank" rel="noopener"
