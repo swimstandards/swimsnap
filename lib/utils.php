@@ -44,6 +44,21 @@ function shorten_title(string $full_title, int $max_words = 5): string
         : $full_title;
 }
 
+function normalize_event_name(string $event_name): string
+{
+    $event_name = trim(preg_replace('/\s+/', ' ', $event_name));
+
+    $normalizations = [
+        '/\b500\s+Yard\s+Freestyle\s+Relay\s+200-150-100-50\b/i' => '500 Yard Freestyle Relay',
+    ];
+
+    foreach ($normalizations as $pattern => $replacement) {
+        $event_name = preg_replace($pattern, $replacement, $event_name);
+    }
+
+    return trim($event_name);
+}
+
 function extract_event_info(string $line): ?array
 {
     // Normalize whitespace
@@ -60,7 +75,7 @@ function extract_event_info(string $line): ?array
     if (preg_match('/^Event\s+(\d+[A-Za-z]?)\s+(Boys|Girls|Men|Women|Mixed)\s+(.+)/i', $line, $matches)) {
         return [
             'event_number' => $normalize_event_number($matches[1]),
-            'event_name' => trim($matches[3]),
+            'event_name' => normalize_event_name($matches[3]),
             'gender' => $matches[2]
         ];
     }
@@ -69,7 +84,7 @@ function extract_event_info(string $line): ?array
     if (preg_match('/^#(\d+[A-Za-z]?)\s+(Boys|Girls|Men|Women|Mixed)\s+(.+)/i', $line, $matches)) {
         return [
             'event_number' => $normalize_event_number($matches[1]),
-            'event_name' => trim($matches[3]),
+            'event_name' => normalize_event_name($matches[3]),
             'gender' => $matches[2]
         ];
     }
