@@ -52,19 +52,23 @@ function extract_event_info(string $line): ?array
     // Remove surrounding parentheses if present
     $line = trim($line, "()");
 
+    $normalize_event_number = static function (string $value) {
+        return ctype_digit($value) ? (int)$value : $value;
+    };
+
     // Match "Event 1 Women 100 Free"
-    if (preg_match('/^Event\s+(\d+)\s+(Boys|Girls|Men|Women|Mixed)\s+(.+)/i', $line, $matches)) {
+    if (preg_match('/^Event\s+(\d+[A-Za-z]?)\s+(Boys|Girls|Men|Women|Mixed)\s+(.+)/i', $line, $matches)) {
         return [
-            'event_number' => (int)$matches[1],
+            'event_number' => $normalize_event_number($matches[1]),
             'event_name' => trim($matches[3]),
             'gender' => $matches[2]
         ];
     }
 
     // Match "#1 Girls 50 Free"
-    if (preg_match('/^#(\d+)\s+(Boys|Girls|Men|Women|Mixed)\s+(.+)/i', $line, $matches)) {
+    if (preg_match('/^#(\d+[A-Za-z]?)\s+(Boys|Girls|Men|Women|Mixed)\s+(.+)/i', $line, $matches)) {
         return [
-            'event_number' => (int)$matches[1],
+            'event_number' => $normalize_event_number($matches[1]),
             'event_name' => trim($matches[3]),
             'gender' => $matches[2]
         ];
