@@ -245,11 +245,53 @@ function parse_result_line($line)
     ];
   }
 
+  // Compact individual row used in some relay-meet exports:
+  // "Gyor i, Caleb1 22.20 16"
+  if (str_contains($line, ',') && preg_match('/^(.+?)(\*?\d+)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})(?:\s+(\d+(?:\.\d+)?))?$/', $line, $m)) {
+    return [
+      "rank" => ltrim($m[2], '*'),
+      "name" => trim($m[1]),
+      "age" => null,
+      "team" => null,
+      "seed_time" => null,
+      "result_time" => $m[3],
+      "points" => isset($m[4]) ? (float) $m[4] : null,
+      "qualified" => false,
+      "relay" => null
+    ];
+  }
+
   return null;
 }
 
 function parse_relay_line($line)
 {
+  // Compact relay row: "AKELL-NC1 1:50.99 32"
+  if (preg_match('/^([A-Z0-9\-]+)(\*?\d+)\s+(\d{1,2}:\d{2}\.\d{2}|\d{1,2}\.\d{2})(?:\s+(\d+(?:\.\d+)?))?$/', $line, $m)) {
+    return [
+      'rank' => ltrim($m[2], '*'),
+      'team' => trim($m[1]),
+      'relay' => 'A',
+      'seed_time' => null,
+      'finals_time' => $m[3],
+      'status' => null,
+      'points' => isset($m[4]) ? (float) $m[4] : null,
+    ];
+  }
+
+  // Compact relay status row: "CLTCS-NC--- DQ"
+  if (preg_match('/^([A-Z0-9\-]+)---\s+(DQ|DFS|NS)$/', $line, $m)) {
+    return [
+      'rank' => null,
+      'team' => trim($m[1]),
+      'relay' => 'A',
+      'seed_time' => null,
+      'finals_time' => null,
+      'status' => $m[2],
+      'points' => null,
+    ];
+  }
+
   if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+(\w)\s+(\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)\s+(DQ|DFS|\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)(?:\s+(\d+))?$/', $line, $m)) {
     return [
       'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
@@ -343,14 +385,16 @@ function process_results($content)
   $pending_seed_time = null;
   $pending_individual = null;
   $pending_relay = null;
+  $pending_ranks = [];
   $last_line_type = 'other';
 
-  $reset_stacked_state = static function () use (&$stacked_layout, &$pending_team, &$pending_seed_time, &$pending_individual, &$pending_relay, &$last_line_type) {
+  $reset_stacked_state = static function () use (&$stacked_layout, &$pending_team, &$pending_seed_time, &$pending_individual, &$pending_relay, &$pending_ranks, &$last_line_type) {
     $stacked_layout = false;
     $pending_team = null;
     $pending_seed_time = null;
     $pending_individual = null;
     $pending_relay = null;
+    $pending_ranks = [];
     $last_line_type = 'other';
   };
 
@@ -365,6 +409,20 @@ function process_results($content)
     if ($value === '' || !is_numeric($value)) return null;
     $num = (float) $value;
     return floor($num) == $num ? (int) $num : $num;
+  };
+
+  $split_stacked_school_and_name = static function (string $value): ?array {
+    if (!str_contains($value, ',')) return null;
+    if (!preg_match('/^(.+)([A-Z][A-Za-z\'\.\-]+,\s+[A-Za-z\'\.\-\(\) ]+)$/', $value, $m)) {
+      return null;
+    }
+
+    $team = trim($m[1]);
+    $name = trim($m[2]);
+
+    if ($team === '' || $name === '') return null;
+
+    return [$team, $name];
   };
 
   $finalize_pending_relay = static function () use (&$pending_relay, &$current_results, &$current_round) {
@@ -391,13 +449,38 @@ function process_results($content)
     }
 
     if (
+      str_starts_with($line, '3A State Rec:') ||
+      str_starts_with($line, 'State Record:') ||
+      str_starts_with($line, 'All-Am. Auto:') ||
+      str_starts_with($line, 'All-Am. Cons:')
+    ) {
+      continue;
+    }
+
+    if (
       strcasecmp($line, 'Prelim Time Points') === 0 ||
       strcasecmp($line, 'Seed Time') === 0 ||
       strcasecmp($line, 'Seed Time Points') === 0 ||
       strcasecmp($line, 'Name School Finals Time') === 0 ||
-      strcasecmp($line, 'Name School Finals Score Points') === 0
+      strcasecmp($line, 'Name School Finals Score') === 0 ||
+      strcasecmp($line, 'Name School Finals Score Points') === 0 ||
+      strcasecmp($line, 'Yr SchoolName Finals Time') === 0
     ) {
       $stacked_layout = true;
+      $last_line_type = 'other';
+      continue;
+    }
+
+    if (preg_match('/^Team Relay\s+(?:Finals TimePrelim Time|Prelim TimeSeed Time|Finals TimeSeed Time)$/i', $line)) {
+      $stacked_layout = true;
+      $in_relay = true;
+      $last_line_type = 'other';
+      continue;
+    }
+
+    if (preg_match('/^Name School\s+(?:Finals TimePrelim Time|Prelim TimeSeed Time|Finals TimeSeed Time)$/i', $line)) {
+      $stacked_layout = true;
+      $in_relay = false;
       $last_line_type = 'other';
       continue;
     }
@@ -487,6 +570,7 @@ function process_results($content)
       $pending_team = null;
       $pending_seed_time = null;
       $pending_individual = null;
+      $pending_ranks = [];
       $last_line_type = 'other';
       continue;
     }
@@ -497,20 +581,23 @@ function process_results($content)
       $pending_team = null;
       $pending_seed_time = null;
       $pending_individual = null;
+      $pending_ranks = [];
       $last_line_type = 'other';
       continue;
     }
 
     if ($stacked_layout && preg_match('/^-\s*Swim-off$/i', $line)) {
       $current_round = 'Swim-Off';
+      $pending_ranks = [];
       $last_line_type = 'other';
       continue;
     }
 
     // Standard "Event 1 Boys 200 Free" format
-    if (preg_match('/^\(?Event\s+(\d+)/', $line)) {
+    if (preg_match('/\bEvent\s+\d+[A-Za-z]?\s+(?:Girls|Boys|Men|Women|Mixed)\b/i', $line, $m, PREG_OFFSET_CAPTURE)) {
       $finalize_pending_relay();
-      $info = extract_event_info($line);
+      $event_fragment = substr($line, $m[0][1]);
+      $info = extract_event_info($event_fragment);
       if (!$info) continue;
 
       if ($current_event && $current_event['event_number'] === $info['event_number']) continue;
@@ -533,15 +620,38 @@ function process_results($content)
       continue;
     }
 
+    if (preg_match('/^RelayTeam Finals Time$/i', $line)) {
+      $in_relay = true;
+      $stacked_layout = true;
+      $last_line_type = 'other';
+      continue;
+    }
+
     if (str_starts_with($line, 'Team Relay Seed Time')) {
       $in_relay = true;
       $last_line_type = 'other';
       continue;
     }
 
+    if ($in_relay) {
+      $relay = parse_relay_line($line);
+      if ($relay) {
+        $relay['round'] = $current_round;
+        $current_results[] = $relay;
+        $last_line_type = 'other';
+        continue;
+      }
+    }
+
     if ($stacked_layout && preg_match('/^\d+\)\s+/', $line)) {
       $finalize_pending_relay();
       $last_line_type = 'swimmer_list';
+      continue;
+    }
+
+    if ($stacked_layout && preg_match('/^(?:\*?\d+|---)$/', $line)) {
+      $pending_ranks[] = $line === '---' ? null : ltrim($line, '*');
+      $last_line_type = 'other';
       continue;
     }
 
@@ -634,22 +744,171 @@ function process_results($content)
         continue;
       }
 
+      if (
+        !empty($pending_ranks) &&
+        preg_match('/^(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS)(?:\s*([A-Z]))?\s*((?:\d{1,2}:)?\d{1,2}\.\d{2})?$/', $line, $m)
+      ) {
+        $rank = array_shift($pending_ranks);
+        $team = trim($m[1]);
+        $first_time_or_status = $m[2];
+        $note = $m[3] ?? null;
+        $second_time = $m[4] ?? null;
+
+        $pending_relay = [
+          'rank' => $rank,
+          'team' => $team,
+          'relay' => 'Relay',
+          'status' => in_array($first_time_or_status, ['DQ', 'DFS']) ? $first_time_or_status : null,
+        ];
+
+        if (in_array($first_time_or_status, ['DQ', 'DFS'])) {
+          if ($pending_seed_time) {
+            $pending_relay['seed_time'] = $pending_seed_time;
+            $pending_seed_time = null;
+          }
+        } elseif ($second_time !== null) {
+          $pending_relay['finals_time'] = $first_time_or_status;
+          $pending_relay['seed_time'] = $second_time;
+        } elseif ($pending_seed_time) {
+          $pending_relay['seed_time'] = $pending_seed_time;
+          $pending_relay['finals_time'] = $first_time_or_status;
+          $pending_seed_time = null;
+        } else {
+          $pending_relay['_pending_time'] = $first_time_or_status;
+        }
+
+        if ($note) {
+          $pending_relay['note'] = $note;
+        }
+
+        $last_line_type = 'other';
+        continue;
+      }
+
       if ($is_metric($line) && $last_line_type !== 'swimmer_list' && $last_line_type !== 'split') {
         $pending_seed_time = $line;
         $last_line_type = 'other';
         continue;
       }
 
-      $relay = parse_relay_line($line);
-      if ($relay) {
-        $relay['round'] = $current_round;
-        $current_results[] = $relay;
+    }
+
+    if (
+      $stacked_layout &&
+      !$in_relay &&
+      preg_match('/^(?:(\*?\d+)\s*)?(.+?)\s+(\d+\.\d{2}|NT)\s*(\d+\.\d{2}|NT)$/', $line, $m)
+    ) {
+      $parts = $split_stacked_school_and_name(trim($m[2]));
+      $rank = $m[1] !== '' ? ltrim($m[1], '*') : (!empty($pending_ranks) ? array_shift($pending_ranks) : null);
+      if ($parts && $rank !== null) {
+        [$team, $name] = $parts;
+        $current_results[] = [
+          'rank' => $rank,
+          'name' => $name,
+          'age' => null,
+          'team' => $team,
+          'seed_time' => $m[4] === 'NT' ? 'NT' : $m[4],
+          'result_time' => $m[3] === 'NT' ? null : $m[3],
+          'note' => $m[3] === 'NT' ? 'NT' : null,
+          'qualified' => false,
+          'relay' => null,
+          'round' => $current_round,
+        ];
         $last_line_type = 'other';
         continue;
       }
     }
 
+    if (
+      $stacked_layout &&
+      !$in_relay &&
+      !empty($pending_ranks) &&
+      preg_match('/^(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})\s*((?:\d{1,2}:)?\d{1,2}\.\d{2})$/', $line, $m)
+    ) {
+      $parts = $split_stacked_school_and_name(trim($m[1]));
+      if ($parts) {
+        $rank = array_shift($pending_ranks);
+        [$team, $name] = $parts;
+        $current_results[] = [
+          'rank' => $rank,
+          'name' => $name,
+          'age' => null,
+          'team' => $team,
+          'seed_time' => $m[3],
+          'result_time' => $m[2],
+          'qualified' => false,
+          'relay' => null,
+          'round' => $current_round,
+        ];
+        $last_line_type = 'other';
+        continue;
+      }
+    }
+
+    if (
+      $stacked_layout &&
+      !$in_relay &&
+      preg_match('/^(.+?)(\*?\d+)\s+([A-Z0-9\-]+)$/', $line, $m) &&
+      !preg_match('/^\(?Event\b/i', $line)
+    ) {
+      $pending_individual = [
+        'rank' => ltrim($m[2], '*'),
+        'name' => trim($m[1]),
+        'age' => null,
+        'team' => trim($m[3]),
+        'qualified' => false,
+        'relay' => null,
+        '_awaiting_result_only' => true,
+      ];
+      $pending_team = null;
+      $pending_seed_time = null;
+      $last_line_type = 'other';
+      continue;
+    }
+
+    if (
+      $stacked_layout &&
+      !$in_relay &&
+      preg_match('/^(.+?)(\*?\d+)\s+(FR|SO|JR|SR|\d+)$/', $line, $m) &&
+      !preg_match('/^\(?Event\b/i', $line)
+    ) {
+      $pending_individual = [
+        'rank' => ltrim($m[2], '*'),
+        'name' => trim($m[1]),
+        'age' => null,
+        'qualified' => false,
+        'relay' => null,
+        '_awaiting_team' => true,
+        '_awaiting_result_only' => true,
+      ];
+      $pending_team = null;
+      $pending_seed_time = null;
+      $last_line_type = 'other';
+      continue;
+    }
+
     if ($stacked_layout && $pending_individual) {
+      if (($pending_individual['_awaiting_team'] ?? false) && !$is_metric($line) && !str_contains($line, '(')) {
+        $pending_individual['team'] = $line;
+        unset($pending_individual['_awaiting_team']);
+        $last_line_type = 'other';
+        continue;
+      }
+
+      if (($pending_individual['_awaiting_result_only'] ?? false) && preg_match('/^((?:\d{1,2}:)?\d{1,2}\.\d{2}|\d+\.\d{2}|DQ|DFS)(?:\s+(.+))?$/', $line, $m)) {
+        $pending_individual['result_time'] = in_array($m[1], ['DQ', 'DFS']) ? null : $m[1];
+        $pending_individual['note'] = in_array($m[1], ['DQ', 'DFS']) ? $m[1] : null;
+        $pending_individual['points'] = $parse_points($m[2] ?? null);
+        unset($pending_individual['_awaiting_result_only'], $pending_individual['_awaiting_team']);
+        $pending_individual['round'] = $current_round;
+        $current_results[] = $pending_individual;
+        $pending_individual = null;
+        $pending_team = null;
+        $pending_seed_time = null;
+        $last_line_type = 'other';
+        continue;
+      }
+
       if (!isset($pending_individual['seed_time']) && $is_metric($line)) {
         $pending_individual['seed_time'] = $line;
         $last_line_type = 'other';
@@ -741,6 +1000,7 @@ function process_results($content)
       !preg_match('/^\(?Event\s+/i', $line) &&
       !preg_match('/^(?:Name|Team|Prelim|Final|A - Final|B - Final|Scores\b|- Swim-off\b)/i', $line) &&
       !preg_match('/^\*?\d+/', $line) &&
+      !preg_match('/^.+?,\s+.+?\*?\d+\s+(?:\d{1,2}:)?\d{1,2}\.\d{2}(?:\s+\d+(?:\.\d+)?)?$/', $line) &&
       !$is_metric($line) &&
       !str_contains($line, '(')
     ) {
