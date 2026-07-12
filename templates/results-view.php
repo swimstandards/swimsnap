@@ -115,6 +115,10 @@
       `;
 
         for (const [roundName, results] of Object.entries(rounds)) {
+          const hasRelayRows = results.some(r => !!r.relay);
+          const hasIndividualRows = results.some(r => !r.relay);
+          const useMixedColumns = hasRelayRows && hasIndividualRows;
+
           item += `
         <h5 class="mt-1 mb-3">${roundName}</h5>
         <div class="table-responsive">
@@ -122,7 +126,9 @@
             <thead class="table-light">
               <tr><th>Place</th>`;
 
-          if (results[0].relay) {
+          if (useMixedColumns) {
+            item += `<th>Name / Team</th><th>Age / Relay</th><th>Team</th><th>Seed Time</th><th>${roundName} Time</th><th>Points / Note</th>`;
+          } else if (results[0].relay) {
             item += `<th>Team</th><th>Relay</th><th>Seed Time</th><th>Finals Time</th><th>Points</th>`;
           } else if (roundName === "Finals") {
             item += `<th>Name</th><th>Age</th><th>Team</th><th>Seed Time</th><th>${roundName} Time</th><th>Points</th>`;
@@ -135,7 +141,17 @@
           results.forEach(r => {
             item += `<tr><td>${r.rank ?? '—'}</td>`;
 
-            if (r.relay) {
+            if (useMixedColumns) {
+              const displayTime = r.finals_time ?? r.result_time ?? '';
+              const displayMeta = r.relay ? (r.points ?? r.status ?? r.note ?? '') : (r.points ?? (r.qualified ? 'q' : (r.note ?? '')));
+              item += `<td>${highlightMatch(r.relay ? (r.team ?? '') : (r.name ?? ''))}</td><td>${r.relay ?? (r.age ?? '')}</td><td>${highlightMatch(r.relay ? '' : (r.team ?? ''))}</td><td>${r.seed_time ?? ''}</td><td>`;
+              if (r.splits?.length) {
+                item += `<button type="button" class="show-splits" data-splits='${JSON.stringify(r.splits)}' style="all: unset; cursor: pointer; text-decoration: underline; color: inherit;">${displayTime}</button>`;
+              } else {
+                item += `${displayTime}`;
+              }
+              item += `</td><td>${displayMeta}</td>`;
+            } else if (r.relay) {
               item += `<td>${highlightMatch(r.team ?? '')}</td><td>${r.relay ?? ''}</td><td>${r.seed_time ?? ''}</td><td>`;
               if (r.splits?.length) {
                 item += `<button type="button" class="show-splits" data-splits='${JSON.stringify(r.splits)}' style="all: unset; cursor: pointer; text-decoration: underline; color: inherit;">${r.finals_time ?? r.result_time ?? ''}</button>`;

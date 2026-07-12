@@ -1169,6 +1169,8 @@ function process_results($content)
       $stacked_layout &&
       !$in_relay &&
       preg_match('/^(.+?)(\*?\d+)\s+([A-Z0-9\-]+)$/', $line, $m) &&
+      !str_contains($line, ',') &&
+      !preg_match('/\d+\.\d{2}/', $m[1]) &&
       !preg_match('/^\(?Event\b/i', $line)
     ) {
       $pending_individual = [
@@ -1190,6 +1192,8 @@ function process_results($content)
       $stacked_layout &&
       !$in_relay &&
       preg_match('/^(.+?)(\*?\d+)\s+(FR|SO|JR|SR|\d+)$/', $line, $m) &&
+      !str_contains($line, ',') &&
+      !preg_match('/\d+\.\d{2}/', $m[1]) &&
       !preg_match('/^\(?Event\b/i', $line)
     ) {
       $pending_individual = [
@@ -1258,6 +1262,57 @@ function process_results($content)
         'seed_time' => $pending_seed_time,
         'result_time' => null,
         'note' => $m[4],
+        'qualified' => false,
+        'relay' => null,
+        'round' => $current_round,
+      ];
+      $pending_team = null;
+      $pending_seed_time = null;
+      $last_line_type = 'other';
+      continue;
+    }
+
+    if (
+      $stacked_layout &&
+      !$in_relay &&
+      $pending_team &&
+      $pending_seed_time &&
+      preg_match('/^(\*?\d+)\s+([^,]+),\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS)(?:\s+(\d+(?:\s*\.\s*\d+)?))$/', $line, $m)
+    ) {
+      $current_results[] = [
+        'rank' => ltrim($m[1], '*'),
+        'name' => trim($m[2]) . ' ' . trim($m[3]),
+        'age' => null,
+        'team' => $pending_team,
+        'seed_time' => $pending_seed_time,
+        'result_time' => in_array($m[4], ['DQ', 'DFS']) ? null : $m[4],
+        'note' => in_array($m[4], ['DQ', 'DFS']) ? $m[4] : null,
+        'points' => $parse_points($m[5] ?? null),
+        'qualified' => false,
+        'relay' => null,
+        'round' => $current_round,
+      ];
+      $pending_team = null;
+      $pending_seed_time = null;
+      $last_line_type = 'other';
+      continue;
+    }
+
+    if (
+      $stacked_layout &&
+      !$in_relay &&
+      $pending_team &&
+      preg_match('/^(\*?\d+)\s+([^,]+),\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS)(?:\s+(\d+(?:\s*\.\s*\d+)?))?$/', $line, $m)
+    ) {
+      $current_results[] = [
+        'rank' => ltrim($m[1], '*'),
+        'name' => trim($m[2]) . ' ' . trim($m[3]),
+        'age' => null,
+        'team' => $pending_team,
+        'seed_time' => null,
+        'result_time' => in_array($m[4], ['DQ', 'DFS']) ? null : $m[4],
+        'note' => in_array($m[4], ['DQ', 'DFS']) ? $m[4] : null,
+        'points' => $parse_points($m[5] ?? null),
         'qualified' => false,
         'relay' => null,
         'round' => $current_round,
