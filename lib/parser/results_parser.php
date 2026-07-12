@@ -42,6 +42,29 @@ function parse_result_line($line)
     ];
   }
 
+  // Full team + points, no seed time
+  if (preg_match('/^(\*?\d+|---)\s+([^,]+),\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+([Xx]?(?:NT|DQ|DFS|(?:\d{1,2}:)?\d{1,2}\.\d{2}|\d+\.\d{2}))\s+(\d+(?:\.\d+)?)$/i', $line, $m)) {
+    $result = $m[6];
+    $note = null;
+    if (preg_match('/^[Xx](.+)$/', $result, $mx)) {
+      $note = 'X';
+      $result = $mx[1];
+    }
+
+    return [
+      "rank" => $m[1] === '---' ? null : ltrim($m[1], '*'),
+      "name" => trim($m[2]) . ' ' . trim($m[3]),
+      "age" => (int)$m[4],
+      "team" => trim($m[5]),
+      "seed_time" => null,
+      "result_time" => in_array($result, ['DQ', 'DFS', 'NT']) ? null : $result,
+      "note" => in_array($result, ['DQ', 'DFS', 'NT']) ? $result : $note,
+      "points" => (float)$m[7],
+      "qualified" => false,
+      "relay" => null
+    ];
+  }
+
   // Full team + points
   if (preg_match('/^(\*?\d+)\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+([A-Z]?\d{1,2}[:.]\d{1,2}(?:\.\d{2})?[YLS]?)\s+([A-Z]?\d{1,2}[:.]\d{1,2}(?:\.\d{2})?[YLS]?)\s+(\d+)$/i', $line, $m)) {
     return [
@@ -266,6 +289,27 @@ function parse_result_line($line)
 
 function parse_relay_line($line)
 {
+  // Standard high-school relay row: "1 Lakeville South High School A 2:25.98 8"
+  if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+([A-Z])\s+([Xx]?(?:DQ|DFS|NS|(?:\d{1,2}:)?\d{1,2}\.\d{2}))\s*(\d+(?:\.\d+)?)?$/', $line, $m)) {
+    $final = $m[4];
+    $note = null;
+    if (preg_match('/^[Xx](.+)$/', $final, $mx)) {
+      $note = 'X';
+      $final = $mx[1];
+    }
+
+    return [
+      'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
+      'team' => trim($m[2]),
+      'relay' => $m[3],
+      'seed_time' => null,
+      'finals_time' => in_array($final, ['DQ', 'DFS', 'NS']) ? null : $final,
+      'status' => in_array($final, ['DQ', 'DFS', 'NS']) ? $final : null,
+      'note' => $note,
+      'points' => isset($m[5]) ? (float)$m[5] : null,
+    ];
+  }
+
   // Compact relay row: "AKELL-NC1 1:50.99 32"
   if (preg_match('/^([A-Z0-9\-]+)(\*?\d+)\s+(\d{1,2}:\d{2}\.\d{2}|\d{1,2}\.\d{2})(?:\s+(\d+(?:\.\d+)?))?$/', $line, $m)) {
     return [
@@ -509,7 +553,7 @@ function process_results($content)
         'results' => []
       ];
       $current_results = [];
-      $in_relay = false;
+      $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
     }
@@ -529,7 +573,7 @@ function process_results($content)
         'results' => []
       ];
       $current_results = [];
-      $in_relay = false;
+      $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
     }
@@ -558,7 +602,7 @@ function process_results($content)
         'results' => []
       ];
       $current_results = [];
-      $in_relay = false;
+      $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
     }
@@ -609,7 +653,7 @@ function process_results($content)
 
       $current_event = $info + ['results' => []];
       $current_results = [];
-      $in_relay = false;
+      $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
     }
