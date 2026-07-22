@@ -13,7 +13,10 @@ function parse_result_line($line)
   // Compact dual-meet individual row:
   // "Lakeville North High School71 Linsmeyer, Ariah 2:20.54 6"
   // "Lakeville South High School8--- Schliep, Claire X2:59.91"
-  if (preg_match('/^(.+?)(\d{1,2})(\*?\d+|---)\s+([^,]+),\s+(.+?)\s+([Xx]?(?:NT|DQ|DFS|(?:\d{1,2}:)?\d{1,2}\.\d{2}|\d+\.\d{2}))(?:\s+(\d+(?:\.\d+)?))?$/', $line, $m)) {
+  // A standard HY-TEK row starts with its rank (for example, "*100 ").
+  // Exclude those rows so the compact team's trailing age/rank columns cannot
+  // consume digits from the rank and shift the remaining fields into `name`.
+  if (preg_match('/^(?!\*?\d+\s|---\s)(.+?)(\d{1,2})(\*?\d+|---)\s+([^,]+),\s+(.+?)\s+([Xx]?(?:NT|DQ|DFS|(?:\d{1,2}:)?\d{1,2}\.\d{2}|\d+\.\d{2}))(?:\s+(\d+(?:\.\d+)?))?$/', $line, $m)) {
     $result = $m[6];
     $note = null;
     if (preg_match('/^[Xx](.+)$/', $result, $mx)) {
