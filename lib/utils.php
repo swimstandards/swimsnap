@@ -71,6 +71,16 @@ function extract_event_info(string $line): ?array
         return ctype_digit($value) ? (int)$value : $value;
     };
 
+    // Match combined relay headers such as:
+    // "Event 9 / 10 Women / Men 200 Medley Relay"
+    if (preg_match('/^Event\s+(\d+[A-Za-z]?\s*\/\s*\d+[A-Za-z]?)\s+((?:Boys|Girls|Men|Women)\s*\/\s*(?:Boys|Girls|Men|Women))\s+(.+)/i', $line, $matches)) {
+        return [
+            'event_number' => preg_replace('/\s*\/\s*/', ' / ', $matches[1]),
+            'event_name' => normalize_event_name($matches[3]),
+            'gender' => preg_replace('/\s*\/\s*/', ' / ', $matches[2])
+        ];
+    }
+
     // Match "Event 1 Women 100 Free"
     if (preg_match('/^Event\s+(\d+[A-Za-z]?)\s+(Boys|Girls|Men|Women|Mixed)\s+(.+)/i', $line, $matches)) {
         return [

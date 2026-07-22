@@ -211,7 +211,7 @@ function process_heat_sheet($content)
         }
 
         // Event start
-        if (preg_match('/^(Event\s+\d+|#\d+)\s+(Boys|Girls|Men|Women|Mixed)\b/', $line)) {
+        if (preg_match('/^(?:Event\s+\d+[A-Za-z]?(?:\s*\/\s*\d+[A-Za-z]?)?|#\d+[A-Za-z]?)\s+(?:Boys|Girls|Men|Women|Mixed)(?:\s*\/\s*(?:Boys|Girls|Men|Women|Mixed))?\b/i', $line)) {
             $in_alternates = false; // 🔁 Reset alternates on new event
             if ($current_event) {
                 if ($current_heat && (!empty($current_heat['swimmers']) || !empty($current_heat['teams']))) {
