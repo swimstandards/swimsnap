@@ -281,6 +281,78 @@ function parse_swimmer_line($line)
     return null;
 }
 
+/**
+ * Recover rows from PDFs whose two-column table was flattened during text
+ * extraction: ranks, names, ages, and team/time values arrive as separate
+ * vertical lists rather than one row per swimmer.
+ */
+function recover_columnar_psych_seeds(array $lines): array
+{
+    $ranks = [];
+    $names = [];
+    $ages = [];
+    $team_times = [];
+    $rank_line_indexes = [];
+
+    // Rank columns are consecutive ascending sequences. Ages are not, even
+    // though both are rendered as a line containing only a number.
+    for ($i = 0, $line_count = count($lines); $i < $line_count;) {
+        if (!preg_match('/^\d+$/', $lines[$i])) {
+            $i++;
+            continue;
+        }
+
+        $start = $i;
+        $values = [];
+        while ($i < $line_count && preg_match('/^\d+$/', $lines[$i])) {
+            $values[] = (int) $lines[$i];
+            $i++;
+        }
+
+        $is_rank_run = count($values) >= 3;
+        for ($j = 1; $j < count($values) && $is_rank_run; $j++) {
+            $is_rank_run = $values[$j] === $values[$j - 1] + 1;
+        }
+        if ($is_rank_run) {
+            foreach (array_keys($values) as $offset) {
+                $rank_line_indexes[$start + $offset] = true;
+            }
+        }
+    }
+
+    foreach ($lines as $index => $line) {
+        if (isset($rank_line_indexes[$index]) && preg_match('/^(\d+)$/', $line, $m)) {
+            $ranks[] = $m[1];
+        }
+        if (preg_match('/^[^\d][^,]*,\s*.+$/', $line)) {
+            $names[] = $line;
+        }
+        if (!isset($rank_line_indexes[$index]) && preg_match('/^\d{1,2}$/', $line)) {
+            $ages[] = (int) $line;
+        }
+        if (preg_match('/^(.+?)\s+(NT|(?:\d{1,2}:)?\d{1,2}\.\d{2}[YLS]?)$/', $line, $m)) {
+            $team_times[] = ['team' => trim($m[1]), 'seed_time' => $m[2]];
+        }
+    }
+
+    $count = min(count($ranks), count($names), count($ages), count($team_times));
+    while (count($ranks) < $count) {
+        $ranks[] = (string) ((int) end($ranks) + 1);
+    }
+    $seeds = [];
+    for ($i = 0; $i < $count; $i++) {
+        $seeds[] = [
+            'rank' => $ranks[$i],
+            'name' => $names[$i],
+            'age' => $ages[$i],
+            'team' => $team_times[$i]['team'],
+            'seed_time' => $team_times[$i]['seed_time'],
+        ];
+    }
+
+    return $seeds;
+}
+
 function process_psych_sheet($content)
 {
     $lines = explode("\n", $content);
@@ -288,6 +360,18 @@ function process_psych_sheet($content)
     $current_event = null;
     $relay_seed_mode = false;
     $individual_seed_mode = false;
+
+    $finish_event = static function ($event) use (&$events) {
+        if ($event === null) {
+            return;
+        }
+
+        if (empty($event['seeds'])) {
+            $event['seeds'] = recover_columnar_psych_seeds($event['_raw_lines'] ?? []);
+        }
+        unset($event['_raw_lines']);
+        $events[] = $event;
+    };
 
     foreach ($lines as $line) {
         $line = trim($line);
@@ -299,11 +383,10 @@ function process_psych_sheet($content)
 
         // Event header
         // if (preg_match('/(Event \d+|#\d+)\s+(Boys|Girls|Women|Men|Mixed)/i', $line)) {
-        if (preg_match('/^(?:Event\s+|#)(\d+)\s+(Boys|Girls|Women|Men|Mixed)\s+(.*)$/i', $line, $m)) {
-            if ($current_event !== null) {
-                $events[] = $current_event;
-            }
-            $current_event = extract_event_info($line);
+        if (preg_match('/(?:^|\s)(?:Event\s+|#)(\d+)\s+(Boys|Girls|Women|Men|Mixed)\s+(.*)$/i', $line, $m)) {
+            $finish_event($current_event);
+            $current_event = extract_event_info("Event {$m[1]} {$m[2]} {$m[3]}");
+            $current_event['_raw_lines'] = [];
             $relay_seed_mode = false;
             $individual_seed_mode = false;
         } elseif (stripos($line, "Team Relay Seed Time") !== false) {
@@ -329,11 +412,13 @@ function process_psych_sheet($content)
                 $current_event["seeds"][] = $seed;
             }
         }
+
+        if ($current_event !== null) {
+            $current_event['_raw_lines'][] = $line;
+        }
     }
 
-    if ($current_event !== null) {
-        $events[] = $current_event;
-    }
+    $finish_event($current_event);
 
     // pr_pre($events);
 

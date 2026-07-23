@@ -1,18 +1,6 @@
 <?php $this->layout('layout', ['title' => 'SwimSnap', 'full_width' => true]) ?>
 
 <div class="hero-banner-simple text-center">
-  <?php if (!empty($currentMeet)): ?>
-    <div class="bg-light border-top border-bottom py-3">
-      <div class="container text-center">
-        <a href="<?= htmlspecialchars($currentMeet['url']) ?>" rel="noopener" class="text-decoration-none">
-          <strong>🚨 Meet in Progress:</strong>
-          <span class="text-primary"><?= htmlspecialchars($currentMeet['name']) ?> (<?= $currentMeet['start'] ?><?= $currentMeet['end'] ? '–' . $currentMeet['end'] : '' ?>)</span> ·
-          <span class="d-none d-sm-inline">View</span> Meet Central →
-        </a>
-      </div>
-    </div>
-  <?php endif; ?>
-
   <div class="container-lg py-5 position-relative">
     <a href="https://github.com/swimstandards/swimsnap" target="_blank" rel="noopener"
       class="position-absolute top-0 end-0 mt-3 me-3 text-white text-decoration-none d-flex align-items-center gap-1"
@@ -52,6 +40,32 @@
 </div>
 
 <div class="container-lg py-5">
+  <?php if (!empty($active_meets)): ?>
+    <section class="mb-5" aria-labelledby="active-meets-heading">
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <div>
+          <h2 class="h3 mb-1" id="active-meets-heading"><i class="bi bi-calendar2-week me-2 text-primary"></i>Upcoming &amp; In Progress</h2>
+          <p class="text-muted mb-0">Meet Central pages for meets happening now or starting in the next week.</p>
+        </div>
+      </div>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+        <?php foreach ($active_meets as $meet): ?>
+          <div class="col">
+            <a href="<?= htmlspecialchars($meet['url']) ?>" class="card h-100 shadow-sm text-decoration-none text-body">
+              <div class="card-body">
+                <div class="d-flex justify-content-between gap-2 align-items-start mb-2">
+                  <span class="badge text-bg-<?= $meet['is_in_progress'] ? 'success' : 'primary' ?>"><?= $meet['is_in_progress'] ? 'In Progress' : 'Upcoming' ?></span>
+                  <span class="small text-muted text-nowrap"><?= htmlspecialchars($meet['dates']) ?></span>
+                </div>
+                <h3 class="h5 mb-1"><?= htmlspecialchars($meet['name']) ?></h3>
+                <span class="small text-primary">View Meet Central <i class="bi bi-arrow-right"></i></span>
+              </div>
+            </a>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </section>
+  <?php endif; ?>
 
   <div class="row row-cols-1 row-cols-md-2 g-4">
     <div class="col">
