@@ -67,7 +67,9 @@
     </section>
   <?php endif; ?>
 
-  <div class="row row-cols-1 row-cols-md-2 g-4">
+  <section aria-labelledby="explore-meet-files-heading">
+    <h2 class="h3 mb-3" id="explore-meet-files-heading"><i class="bi bi-folder2-open me-2 text-primary"></i>Explore Meet Files</h2>
+    <div class="row row-cols-1 row-cols-md-2 g-4">
     <div class="col">
       <div class="card h-100 shadow-sm position-relative">
         <a href="<?= $base_url ?>/events" class="stretched-link"></a>
@@ -111,5 +113,6 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </section>
 </div>
