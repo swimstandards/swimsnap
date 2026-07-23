@@ -55,8 +55,9 @@ function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not availa
       $displayTitle = $sheetName ? "$meetName — $sheetName" : $meetName;
 
       $org = htmlspecialchars($doc['venue'] ?? $doc['organization'] ?? '');
-      $time = $doc['file_datetime'] ?? $doc['updated_at'] ?? '';
-      $timeFormatted = smartFormatDate($time);
+      $fileUpdated = $doc['file_datetime'] ?? '';
+      $timeFormatted = smartFormatDate($fileUpdated);
+      $addedOn = format_metadata_datetime($doc['added_at'] ?? null);
 
       $slugType = str_replace('_', '-', $type);
       $link = "{$base_url}/{$slugType}/{$doc['slug']}";
@@ -64,11 +65,13 @@ function renderSection($label, $type, $docs, $base_url, $emptyText = 'Not availa
       echo "<a href=\"$link\" class=\"list-clickable text-decoration-none text-body d-flex align-items-center gap-2 py-2 border-bottom hover-row\">";
       echo '<i class="bi bi-link-45deg text-primary"></i>';
       echo "<div>$displayTitle";
-      if ($org || $timeFormatted) {
+      if ($org || $timeFormatted || $addedOn) {
         echo " <span class=\"text-muted small\">• ";
         if ($org) echo "$org";
-        if ($org && $timeFormatted) echo " — ";
-        if ($timeFormatted) echo "Updated $timeFormatted";
+        if ($org && ($timeFormatted || $addedOn)) echo " — ";
+        if ($timeFormatted) echo "Doc Updated $timeFormatted";
+        if ($timeFormatted && $addedOn) echo " · ";
+        if ($addedOn) echo "Added at $addedOn";
         echo "</span>";
       }
       echo '</div>';

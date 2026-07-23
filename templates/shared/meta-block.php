@@ -5,6 +5,8 @@ $meet_start = $meet_info['meet_start_date'] ?? '';
 $meet_end = $meet_info['meet_end_date'] ?? '';
 $meet_date = $meet_info['meet_date'] ?? '';
 $file_updated = $meet_info['file_datetime'] ?? null;
+$added_at = $meet_info['added_at'] ?? null;
+$added_at_display = format_metadata_datetime($added_at, 'M j, Y, g:i A T');
 $slug = slugify("$meet_name_original $meet_start");
 $meet_link = "$base_url/meet/$slug";
 $org = $meet_info['organization'] ?? null;
@@ -30,7 +32,11 @@ $urlToShare = $base_url . $_SERVER['REQUEST_URI'];
       <?php endif; ?>
 
       <?php if (!empty($file_updated)): ?>
-        <strong>Document Updated:</strong> <?= htmlspecialchars($file_updated) ?><br>
+        <strong>Doc Updated:</strong> <?= htmlspecialchars($file_updated) ?><br>
+      <?php endif; ?>
+
+      <?php if ($added_at_display !== ''): ?>
+        <strong>Added at:</strong> <?= htmlspecialchars($added_at_display) ?><br>
       <?php endif; ?>
     </p>
   </div>

@@ -171,3 +171,16 @@ function smartFormatDate($input, $format = 'M j, Y', $timezone = 'America/New_Yo
         return 'N/A';
     }
 }
+
+function format_metadata_datetime($value, string $format = 'M j, Y'): string
+{
+    if ($value instanceof DateTimeInterface) {
+        return $value->setTimezone(new DateTimeZone('America/New_York'))->format($format);
+    }
+
+    if (is_object($value) && method_exists($value, 'toDateTime')) {
+        return $value->toDateTime()->setTimezone(new DateTimeZone('America/New_York'))->format($format);
+    }
+
+    return is_string($value) ? smartFormatDate($value, $format) : '';
+}

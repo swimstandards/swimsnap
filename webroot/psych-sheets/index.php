@@ -18,6 +18,7 @@ if (!empty($_ENV['MONGODB_URI'])) {
       'end_date' => $doc['meet_end_date'] ?? '',
       'organization' => $doc['organization'] ?? '',
       'file_datetime' => $doc['file_datetime'] ?? '',
+      'added_at' => format_metadata_datetime($doc['added_at'] ?? null),
     ];
   }
 } else {
@@ -35,6 +36,7 @@ if (!empty($_ENV['MONGODB_URI'])) {
           'end_date' => $doc['meet_end_date'] ?? '',
           'organization' => $doc['organization'] ?? '',
           'file_datetime' => $doc['file_datetime'] ?? '',
+          'added_at' => format_metadata_datetime($doc['added_at'] ?? null),
         ];
       }
     }

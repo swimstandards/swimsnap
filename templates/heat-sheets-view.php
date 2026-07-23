@@ -20,7 +20,6 @@
 <?php include __DIR__ . '/shared/note-report-block.php' ?>
 <?php include __DIR__ . '/shared/meta-block.php' ?>
 
-
 <div class="mb-3 d-flex">
   <div class="input-group" style="max-width: 400px;">
     <span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -42,6 +41,10 @@
 </div>
 
 <div class="resultsContainer" id="meetProgramAccordionContainer"></div>
+
+<p class="mt-4 mb-0 small text-muted">
+  <a href="<?= htmlspecialchars($base_url . '/raw-file.php?slug=' . rawurlencode($slug), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">View raw file (for debugging)</a>
+</p>
 
 <?php $this->start('scripts') ?>
 <script>

@@ -143,10 +143,9 @@ function handle_text_upload(string $content): array
     }
   }
 
-  // Fallback to current datetime
-  if (empty($metadata["file_datetime"])) {
-    $metadata["file_datetime"] = date('n/j/Y g:i A');
-  }
+  // `file_datetime` belongs to the source document. Do not substitute the
+  // upload time here, or it becomes misleading on the public page.
+  $metadata['added_at'] = date(DATE_ATOM);
 
   if (empty($metadata["meet_name"]) || empty($metadata["type"])) {
     return [
@@ -211,6 +210,8 @@ function handle_text_upload(string $content): array
         if (!empty($doc['file_datetime']) && strtotime($metadata['file_datetime']) <= strtotime($doc['file_datetime'])) {
           $exists = true;
         } else {
+          // Preserve when this document first appeared on SwimSnap.
+          $metadata['added_at'] = $doc['added_at'] ?? $metadata['added_at'];
           $doc = $metadata;
         }
         break;

@@ -65,6 +65,10 @@
 
 <div class="resultsContainer" id="psychSheetAccordionContainer"></div>
 
+<p class="mt-4 mb-0 small text-muted">
+  <a href="<?= htmlspecialchars($base_url . '/raw-file.php?slug=' . rawurlencode($slug), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">View raw file (for debugging)</a>
+</p>
+
 <?php $this->start('scripts') ?>
 <script>
   const parsedEvents = <?= json_encode($parsed_events) ?>;

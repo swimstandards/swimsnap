@@ -38,7 +38,8 @@
           <?php if (!empty($m['organization'])): ?>
             <p class="card-text mb-1"><i class="bi bi-building me-1"></i><strong>Org:</strong> <?= htmlspecialchars($m['organization']) ?></p>
           <?php endif; ?>
-          <p class="card-text"><i class="bi bi-clock me-1"></i><strong>Updated:</strong> <?= $m['file_datetime'] ?></p>
+          <p class="card-text"><i class="bi bi-clock me-1"></i><strong>Doc Updated:</strong> <?= $m['file_datetime'] ?></p>
+          <?php if (!empty($m['added_at'])): ?><p class="card-text"><strong>Added at:</strong> <?= $m['added_at'] ?></p><?php endif; ?>
         </div>
       </div>
     </div>
