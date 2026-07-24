@@ -43,7 +43,7 @@
 <div class="accordion resultsContainer" id="resultsAccordion"></div>
 
 <p class="mt-4 mb-0 small text-muted">
-  <a href="<?= htmlspecialchars($base_url . '/raw-file.php?slug=' . rawurlencode($slug), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">View raw file (for debugging)</a>
+  <a href="<?= htmlspecialchars($base_url . '/raw-file.php?type=results&slug=' . rawurlencode($slug), ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">View raw file (for debugging)</a>
 </p>
 
 <?php $this->start('scripts') ?>
@@ -121,9 +121,10 @@
           const hasRelayRows = results.some(r => !!r.relay);
           const hasIndividualRows = results.some(r => !r.relay);
           const useMixedColumns = hasRelayRows && hasIndividualRows;
+          const showRoundHeading = Object.keys(rounds).length > 1 || roundName !== 'Finals';
 
           item += `
-        <h5 class="mt-1 mb-3">${roundName}</h5>
+        ${showRoundHeading ? `<h5 class="mt-1 mb-3">${roundName}</h5>` : ''}
         <div class="table-responsive">
           <table class="table table-sm table-striped align-middle" id="eventTable${idx}-${roundName.replace(/\s/g, '')}">
             <thead class="table-light">
@@ -132,7 +133,7 @@
           if (useMixedColumns) {
             item += `<th>Name / Team</th><th>Age / Relay</th><th>Team</th><th>Seed Time</th><th>${roundName} Time</th><th>Points / Note</th>`;
           } else if (results[0].relay) {
-            item += `<th>Team</th><th>Relay</th><th>Seed Time</th><th>Finals Time</th><th>Points</th>`;
+            item += `<th>Team</th><th>Relay</th><th>Seed Time</th><th>Finals Time</th><th>Points / Note</th>`;
           } else if (roundName === "Finals") {
             item += `<th>Name</th><th>Age</th><th>Team</th><th>Seed Time</th><th>${roundName} Time</th><th>Points</th>`;
           } else {
@@ -161,7 +162,7 @@
               } else {
                 item += `${r.finals_time ?? r.result_time ?? ''}`;
               }
-              item += `</td><td>${r.points ?? ''}</td>`;
+              item += `</td><td>${r.points ?? r.note ?? r.status ?? ''}</td>`;
             } else {
               item += `<td>${highlightMatch(r.name ?? '')}</td><td>${r.age ?? ''}</td><td>${highlightMatch(r.team ?? '')}</td><td>${r.seed_time ?? ''}</td><td>`;
               if (r.splits?.length) {

@@ -477,6 +477,9 @@ function parse_split_line($line)
 function process_results($content)
 {
   $lines = explode("\n", $content);
+  $is_finals_report = (bool) preg_match('/^Results\s*-\s*.*\bFinals?\b/im', $content);
+  $is_prelims_report = (bool) preg_match('/^Results\s*-\s*.*\bPrelims?(?:inaries)?\b/im', $content);
+  $default_round = $is_finals_report ? 'Finals' : ($is_prelims_report ? 'Preliminaries' : 'Finals');
 
   // 🚨 Limit maximum lines processed
   if (count($lines) > 10000) {
@@ -487,7 +490,7 @@ function process_results($content)
   $events = [];
   $current_event = null;
   $current_results = [];
-  $current_round = 'Finals'; // default
+  $current_round = $default_round;
   $in_relay = false;
   $stacked_layout = false;
   $pending_team = null;
@@ -797,6 +800,7 @@ function process_results($content)
         'results' => []
       ];
       $current_results = [];
+      $current_round = $default_round;
       $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
@@ -817,6 +821,7 @@ function process_results($content)
         'results' => []
       ];
       $current_results = [];
+      $current_round = $default_round;
       $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
@@ -846,6 +851,7 @@ function process_results($content)
         'results' => []
       ];
       $current_results = [];
+      $current_round = $default_round;
       $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
@@ -855,6 +861,18 @@ function process_results($content)
     if (preg_match('/^(Prelims|Preliminaries|Finals|Swim[- ]?Off|Time Trials?)/i', $line, $m)) {
       $finalize_pending_relay();
       $current_round = $m[1];
+      $pending_team = null;
+      $pending_seed_time = null;
+      $pending_individual = null;
+      $pending_ranks = [];
+      $last_line_type = 'other';
+      continue;
+    }
+    // Named finals used by some championship meets, including repeated
+    // page-break headings such as "Championship Final ... (Event 13 ...)".
+    if (preg_match('/^(Championship|Consolation)\s+Final\b/i', $line, $m)) {
+      $finalize_pending_relay();
+      $current_round = ucfirst(strtolower($m[1])) . ' Final';
       $pending_team = null;
       $pending_seed_time = null;
       $pending_individual = null;
@@ -897,6 +915,7 @@ function process_results($content)
 
       $current_event = $info + ['results' => []];
       $current_results = [];
+      $current_round = $default_round;
       $in_relay = stripos($current_event['event_name'], 'Relay') !== false;
       $reset_stacked_state();
       continue;
@@ -1054,6 +1073,23 @@ function process_results($content)
           'points' => $parse_points($m[4] ?? null),
         ];
         $pending_seed_time = null;
+        $last_line_type = 'other';
+        continue;
+      }
+
+      // Standard relay row with both seed and final times:
+      // "1 Nation's Capital Swim Club-PV A 7:36.41 7:38.63 J"
+      if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|NT)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS)(?:\s+([A-Z0-9]+))?$/', $line, $m)) {
+        $pending_relay = [
+          'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
+          'team' => trim($m[2]),
+          'relay' => 'Relay',
+          'seed_time' => $m[3],
+          'finals_time' => in_array($m[4], ['DQ', 'DFS']) ? null : $m[4],
+          'status' => in_array($m[4], ['DQ', 'DFS']) ? $m[4] : null,
+          'note' => $m[5] ?? null,
+          'points' => null,
+        ];
         $last_line_type = 'other';
         continue;
       }
@@ -1849,6 +1885,28 @@ function process_results($content)
   if ($current_event) {
     $current_event['results'] = $current_results;
     $events[] = $current_event;
+  }
+
+  // HY-TEK finals exports can append preliminary-only rows for reference.
+  // They are not part of the final results and should remain visible only
+  // when the uploaded document is itself a preliminaries report.
+  if ($is_finals_report) {
+    foreach ($events as &$event) {
+      $event['results'] = array_values(array_filter(
+        $event['results'],
+        static fn(array $result): bool => !in_array(
+          strtolower(trim((string) ($result['round'] ?? ''))),
+          ['prelim', 'prelims', 'preliminary', 'preliminaries'],
+          true
+        )
+      ));
+    }
+    unset($event);
+
+    $events = array_values(array_filter(
+      $events,
+      static fn(array $event): bool => !empty($event['results'])
+    ));
   }
 
   return ['events' => $events];

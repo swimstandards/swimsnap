@@ -3,7 +3,8 @@
 require_once __DIR__ . '/../lib/bootstrap.php';
 
 $slug = $_GET['slug'] ?? '';
-$folders = [
+$type = $_GET['type'] ?? null;
+$allowed_folders = [
   'psych-sheets',
   'heat-sheets',
   'results',
@@ -13,6 +14,16 @@ if (!is_string($slug) || !preg_match('/^[a-z0-9-]+$/', $slug)) {
   http_response_code(404);
   exit('Raw file not found.');
 }
+
+if ($type !== null && (!is_string($type) || !in_array($type, $allowed_folders, true))) {
+  http_response_code(404);
+  exit('Raw file not found.');
+}
+
+// Current links identify the document type so meets that share a slug across
+// multiple document categories resolve to the file from the current page.
+// Keep the full list as a fallback for older bookmarked links without `type`.
+$folders = $type === null ? $allowed_folders : [$type];
 
 $raw_path = null;
 foreach ($folders as $folder) {
