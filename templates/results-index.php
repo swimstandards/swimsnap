@@ -45,7 +45,7 @@
             <p class="card-text mb-0">
               <i class="bi bi-clock me-1"></i>
               <strong>Doc Updated:</strong> <?= $m['file_datetime'] ?>
-              <?php if (!empty($m['added_at'])): ?><br><strong>Added at:</strong> <?= $m['added_at'] ?><?php endif; ?>
+              <?php if (!empty($m['added_at'])): ?><br><strong>Added on:</strong> <?= $m['added_at'] ?><?php endif; ?>
             </p>
           </div>
         </div>
