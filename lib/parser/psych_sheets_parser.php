@@ -172,6 +172,26 @@ function parse_relay_seed($line)
 }
 
 /**
+ * Parse relay rows extracted in visual column order instead of reading order.
+ *
+ * Example: A 2:13.70 HHSC 1
+ * Columns: Relay, Seed Time, Team, Rank
+ */
+function parse_relay_seed_reversed($line)
+{
+    $pattern = '/^([A-Z])\s+(X?(?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2}[YLS]?))\s+(.+?)\s+(\d+)$/';
+    if (preg_match($pattern, $line, $m)) {
+        return [
+            "rank" => $m[4],
+            "team" => trim($m[3]),
+            "relay" => $m[1],
+            "seed_time" => $m[2]
+        ];
+    }
+    return null;
+}
+
+/**
  * Regex pattern to match psych sheet swimmer lines with full team names.
  *
  * Matches lines like:
@@ -202,6 +222,27 @@ function parse_swimmer_full_team($line)
             "age" => (int)$m[3],
             "team" => $m[4],
             "seed_time" => $seed_time
+        ];
+    }
+    return null;
+}
+
+/**
+ * Parse individual rows extracted in visual column order.
+ *
+ * Example: SURF 32.91 10 Dylan Bachmann 1
+ * Columns: Team, Seed Time, Age, Name, Rank
+ */
+function parse_swimmer_reversed($line)
+{
+    $pattern = '/^(.+?)\s+(X?(?:NT|(?:\d{1,2}:)?\d{1,2}\.\d{2}[YLS]?))\s+(\d{1,2})\s+(.+?)\s+(\d+)$/';
+    if (preg_match($pattern, $line, $m)) {
+        return [
+            "rank" => $m[5],
+            "name" => trim($m[4]),
+            "age" => (int)$m[3],
+            "team" => trim($m[1]),
+            "seed_time" => $m[2]
         ];
     }
     return null;
@@ -272,6 +313,7 @@ function parse_swimmer_year_team($line)
 
 function parse_swimmer_line($line)
 {
+    if ($parsed = parse_swimmer_reversed($line)) return $parsed;
     if ($parsed = parse_swimmer_line_fallback($line)) return $parsed;
     if ($parsed = parse_swimmer_gender_age($line)) return $parsed;
     if ($parsed = parse_swimmer_year_team($line)) return $parsed;
@@ -394,12 +436,16 @@ function process_psych_sheet($content)
             $individual_seed_mode = false;
         } elseif (
             stripos($line, "Name Age Team Seed Time") !== false || stripos($line, "Name Seed Age Team Time") !== false
+            || stripos($line, "Age Name Team Seed Time") !== false
             ||  stripos($line, "Name Yr Team Seed Time") !== false
         ) {
             $individual_seed_mode = true;
             $relay_seed_mode = false;
         } elseif ($relay_seed_mode && $current_event) {
-            $seed = parse_relay_line_fallback($line); // fallback
+            $seed = parse_relay_seed_reversed($line);
+            if (!$seed) {
+                $seed = parse_relay_line_fallback($line); // fallback
+            }
             if (!$seed) {
                 $seed = parse_relay_seed($line);
             }

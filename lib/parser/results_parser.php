@@ -806,8 +806,10 @@ function process_results($content)
       continue;
     }
 
-    // Fallback event header: "Girls 8 & Under 100 LC Meter Freestyle"
-    if (preg_match('/^(Girls|Boys|Mixed)\s+(\d.*)$/i', $line, $m)) {
+    // Fallback event headers:
+    // "Girls 8 & Under 100 LC Meter Freestyle"
+    // "Girls Senior 100 Yard Freestyle"
+    if (preg_match('/^(Girls|Boys|Mixed)\s+(\d.*|Senior\s+\d.*)$/i', $line, $m)) {
       $finalize_pending_relay();
       if ($current_event) {
         $current_event['results'] = $current_results;
@@ -972,6 +974,11 @@ function process_results($content)
 
     if ($in_relay && $stacked_layout) {
       if (preg_match('/^[A-Z0-9\-]{2,10}$/', $line)) {
+        // A new team starts the next stacked relay entry. Preserve a
+        // completed prior entry before collecting the next header.
+        if ($pending_relay) {
+          $finalize_pending_relay();
+        }
         if (!$pending_relay_header) {
           $pending_relay_header = [];
         }
@@ -982,11 +989,29 @@ function process_results($content)
 
       if (($pending_relay_header['team'] ?? null) && preg_match('/^[A-Z]$/', $line)) {
         $pending_relay_header['relay'] = $line;
+        if (array_key_exists('rank', $pending_relay_header)) {
+          $pending_relay = [
+            'rank' => $pending_relay_header['rank'],
+            'team' => $pending_relay_header['team'],
+            'relay' => $pending_relay_header['relay'],
+            'seed_time' => null,
+            'finals_time' => $pending_relay_header['finals_time'] ?? null,
+            'status' => $pending_relay_header['status'] ?? null,
+            'note' => $pending_relay_header['note'] ?? null,
+            'points' => $pending_relay_header['points'] ?? null,
+          ];
+          $pending_relay_header = null;
+        }
         $last_line_type = 'other';
         continue;
       }
 
       if (preg_match('/^(\*?\d+|---)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS|SCR)(?:\s+([A-Z]+|\d+(?:\.\d+)?))?$/', $line, $m)) {
+        // Rank/time may appear before or after team/relay. If the previous
+        // entry is already complete, commit it before starting this one.
+        if ($pending_relay) {
+          $finalize_pending_relay();
+        }
         if (!$pending_relay_header) {
           $pending_relay_header = [];
         }
