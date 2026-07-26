@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/../utils.php';
+require_once __DIR__ . '/results_layout_adapters.php';
 
 function parse_result_line($line)
 {
@@ -453,13 +454,17 @@ function parse_split_line($line)
       }
     }
   } else {
-    // Normal style
-    if (isset($tokens[0])) {
-      $splits[] = $tokens[0];
-    }
+    // Normal cumulative-split style:
+    // "26.33 54.99 1:24.89 1:54.15"
     foreach ($tokens as $token) {
-      if (preg_match('/\(([\d:.]+)\)/', $token, $match)) {
+      if (preg_match('/^(\d{1,2}:)?\d{1,2}\.\d{2}$/', $token)) {
+        $splits[] = $token;
+      } elseif (preg_match('/^\(([\d:.]+)\)$/', $token, $match)) {
         $splits[] = $match[1];
+      } else {
+        // A normal split line contains only times. Reject mixed text here so
+        // result rows and headings cannot be attached as splits accidentally.
+        return [];
       }
     }
   }
@@ -476,14 +481,15 @@ function parse_split_line($line)
 
 function process_results($content)
 {
-  $lines = explode("\n", $content);
+  $layout_document = (new ResultsLayoutAdapterRegistry())->prepare($content);
+  $lines = $layout_document->lines;
   $is_finals_report = (bool) preg_match('/^Results\s*-\s*.*\bFinals?\b/im', $content);
   $is_prelims_report = (bool) preg_match('/^Results\s*-\s*.*\bPrelims?(?:inaries)?\b/im', $content);
   $default_round = $is_finals_report ? 'Finals' : ($is_prelims_report ? 'Preliminaries' : 'Finals');
 
-  // 🚨 Limit maximum lines processed
-  if (count($lines) > 10000) {
-    $lines = array_slice($lines, 0, 10000);
+  // Keep a defensive ceiling without truncating normal multi-session meets.
+  if (count($lines) > 100000) {
+    $lines = array_slice($lines, 0, 100000);
   }
 
 
@@ -492,6 +498,15 @@ function process_results($content)
   $current_results = [];
   $current_round = $default_round;
   $in_relay = false;
+  // The PDF extraction layout is a document-level property. HY-TEK often
+  // prints column headings only for the first event, so preserve the detected
+  // layout when clearing partially assembled rows at an event boundary.
+  // The adapter identifies the expected dialect, but table parsing begins
+  // only after a real column heading is encountered. Starting immediately
+  // would let record years and qualifying standards before the first table
+  // masquerade as stacked ranks/times.
+  $persist_stacked_layout = $layout_document->persistsAcrossEvents;
+  $document_stacked_layout = false;
   $stacked_layout = false;
   $pending_team = null;
   $pending_seed_time = null;
@@ -504,8 +519,8 @@ function process_results($content)
   $last_line_type = 'other';
   $newspaper_pending = null;
 
-  $reset_stacked_state = static function () use (&$stacked_layout, &$pending_team, &$pending_seed_time, &$pending_individual, &$pending_relay, &$pending_stacked_result, &$pending_dual_individual, &$pending_relay_header, &$pending_ranks, &$last_line_type, &$newspaper_pending) {
-    $stacked_layout = false;
+  $reset_stacked_state = static function () use (&$document_stacked_layout, &$stacked_layout, &$pending_team, &$pending_seed_time, &$pending_individual, &$pending_relay, &$pending_stacked_result, &$pending_dual_individual, &$pending_relay_header, &$pending_ranks, &$last_line_type, &$newspaper_pending) {
+    $stacked_layout = $document_stacked_layout;
     $pending_team = null;
     $pending_seed_time = null;
     $pending_individual = null;
@@ -597,6 +612,7 @@ function process_results($content)
       strcasecmp($line, 'Name School Finals Score Points') === 0 ||
       strcasecmp($line, 'Yr SchoolName Finals Time') === 0
     ) {
+      $document_stacked_layout = $persist_stacked_layout;
       $stacked_layout = true;
       $last_line_type = 'other';
       continue;
@@ -608,6 +624,7 @@ function process_results($content)
       strcasecmp($line, 'YrName School Finals Score') === 0 ||
       strcasecmp($line, 'YrName School Finals Score Points') === 0
     ) {
+      $document_stacked_layout = false;
       $stacked_layout = false;
       $in_relay = false;
       $last_line_type = 'other';
@@ -615,6 +632,7 @@ function process_results($content)
     }
 
     if (preg_match('/^Team Relay\s+(?:Finals TimePrelim Time|Prelim TimeSeed Time|Finals TimeSeed Time)$/i', $line)) {
+      $document_stacked_layout = $persist_stacked_layout;
       $stacked_layout = true;
       $in_relay = true;
       $last_line_type = 'other';
@@ -625,6 +643,7 @@ function process_results($content)
       strcasecmp($line, 'Team Relay Finals Time Points') === 0 ||
       strcasecmp($line, 'Team Relay Finals Time Score') === 0
     ) {
+      $document_stacked_layout = $persist_stacked_layout;
       $stacked_layout = true;
       $in_relay = true;
       $last_line_type = 'other';
@@ -632,6 +651,7 @@ function process_results($content)
     }
 
     if (preg_match('/^Name School\s+(?:Finals TimePrelim Time|Prelim TimeSeed Time|Finals TimeSeed Time)$/i', $line)) {
+      $document_stacked_layout = $persist_stacked_layout;
       $stacked_layout = true;
       $in_relay = false;
       $last_line_type = 'other';
@@ -642,6 +662,7 @@ function process_results($content)
       strcasecmp($line, 'Name Age Team Finals Time') === 0 ||
       strcasecmp($line, 'Name Age Team Seed Time Finals Time') === 0
     ) {
+      $document_stacked_layout = false;
       $stacked_layout = false;
       $last_line_type = 'other';
       continue;
@@ -925,6 +946,7 @@ function process_results($content)
 
     if (preg_match('/^Team\s+Relay.*Finals\s+Time$/i', $line)) {
       $in_relay = true;
+      $document_stacked_layout = $persist_stacked_layout;
       $stacked_layout = true;
       $last_line_type = 'other';
       continue;
@@ -932,6 +954,7 @@ function process_results($content)
 
     if (strcasecmp($line, 'Team Finals Time') === 0) {
       $in_relay = true;
+      $document_stacked_layout = $persist_stacked_layout;
       $stacked_layout = true;
       $last_line_type = 'other';
       continue;
@@ -939,6 +962,7 @@ function process_results($content)
 
     if (preg_match('/^RelayTeam Finals Time$/i', $line)) {
       $in_relay = true;
+      $document_stacked_layout = $persist_stacked_layout;
       $stacked_layout = true;
       $last_line_type = 'other';
       continue;
@@ -1934,5 +1958,12 @@ function process_results($content)
     ));
   }
 
-  return ['events' => $events];
+  return [
+    'events' => $events,
+    'parser' => [
+      'layout' => $layout_document->layout,
+      'confidence' => $layout_document->confidence,
+      'persists_across_events' => $layout_document->persistsAcrossEvents,
+    ],
+  ];
 }
