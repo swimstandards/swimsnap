@@ -57,7 +57,8 @@ function parse_result_line($line)
   }
 
   // Full team, no points, with optional trailing note (e.g. q, J1)
-  if (preg_match('/^(\*?\d+)\s+([^,]+),\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+([A-Z]?\d{1,2}[:.]\d{1,2}(?:\.\d{2})?[A-Z]?)\s+([A-Z]?\d{1,2}[:.]\d{1,2}(?:\.\d{2})?[YLS]?)(?:\s+(\w{1,4}))?$/i', $line, $m)) {
+  if (preg_match('/^(\*?\d+)\s+([^,]+),\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+([A-Z]?\d{1,2}[:.]\d{1,2}(?:\.\d{2})?[A-Z]?)\s+([A-Z]?\d{1,2}[:.]\d{1,2}(?:\.\d{2})?[YLS]?)([#*])?(?:\s+(\w{1,4}))?$/i', $line, $m)) {
+    $note = trim(implode(' ', array_filter([$m[8] ?? null, $m[9] ?? null])));
     return [
       "rank" => ltrim($m[1], '*'),
       "name" => trim($m[2]) . ' ' . trim($m[3]),
@@ -65,7 +66,7 @@ function parse_result_line($line)
       "team" => trim($m[5]),
       "seed_time" => $m[6],
       "result_time" => $m[7],
-      "note" => $m[8] ?? null,
+      "note" => $note !== '' ? $note : null,
       "qualified" => false,
       "relay" => null
     ];
@@ -446,10 +447,21 @@ function parse_split_line($line)
 
   $tokens = array_values($tokens);
 
-  if (isset($tokens[1]) && preg_match('/^\(.*\)$/', $tokens[1])) {
-    // Relay style
+  $has_parenthesized_splits = (bool) array_filter(
+    $tokens,
+    static fn(string $token): bool => (bool) preg_match('/^\([\d:.]+\)$/', $token)
+  );
+
+  if ($has_parenthesized_splits) {
+    // HY-TEK mixed style contains cumulative checkpoints followed by the
+    // corresponding lap splits in parentheses. Store lap splits only because
+    // the UI derives cumulative time from this canonical representation.
+    // The opening 50 is already a lap time and is not parenthesized.
+    if (isset($tokens[0]) && preg_match('/^\d{1,2}\.\d{2}$/', $tokens[0])) {
+      $splits[] = $tokens[0];
+    }
     foreach ($tokens as $token) {
-      if (preg_match('/\(([\d:.]+)\)/', $token, $match)) {
+      if (preg_match('/^\(([\d:.]+)\)$/', $token, $match)) {
         $splits[] = $match[1];
       }
     }
@@ -465,6 +477,37 @@ function parse_split_line($line)
         // A normal split line contains only times. Reject mixed text here so
         // result rows and headings cannot be attached as splits accidentally.
         return [];
+      }
+    }
+
+    // Canonical split arrays contain lap times. Convert an increasing series
+    // of bare cumulative checkpoints so the UI can rebuild both the lap and
+    // cumulative columns consistently. A non-increasing series is already a
+    // list of lap times and remains unchanged.
+    if (count($splits) > 1) {
+      $to_seconds = static function (string $time): float {
+        if (str_contains($time, ':')) {
+          [$minutes, $seconds] = explode(':', $time, 2);
+          return ((int) $minutes * 60) + (float) $seconds;
+        }
+        return (float) $time;
+      };
+      $cumulative_seconds = array_map($to_seconds, $splits);
+      $is_increasing = true;
+      for ($i = 1; $i < count($cumulative_seconds); $i++) {
+        if ($cumulative_seconds[$i] <= $cumulative_seconds[$i - 1]) {
+          $is_increasing = false;
+          break;
+        }
+      }
+      if ($is_increasing) {
+        $lap_splits = [];
+        $previous = 0.0;
+        foreach ($cumulative_seconds as $seconds) {
+          $lap_splits[] = number_format($seconds - $previous, 2, '.', '');
+          $previous = $seconds;
+        }
+        $splits = $lap_splits;
       }
     }
   }
@@ -1128,7 +1171,7 @@ function process_results($content)
 
       // Standard relay row with both seed and final times:
       // "1 Nation's Capital Swim Club-PV A 7:36.41 7:38.63 J"
-      if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|NT)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS)(?:\s+([A-Z0-9]+))?$/', $line, $m)) {
+      if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}[YLS]?|NT)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS)(?:\s+([A-Z0-9]+))?$/', $line, $m)) {
         $pending_relay = [
           'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
           'team' => trim($m[2]),
@@ -1920,6 +1963,37 @@ function process_results($content)
     $split = parse_split_line($line);
     if ($split && !empty($current_results)) {
       $last = &$current_results[count($current_results) - 1];
+      if (
+        ($last['relay'] ?? null) &&
+        $current_event &&
+        preg_match('/^400 LC Meter .*Relay$/i', $current_event['event_name'] ?? '') &&
+        count($split) % 2 === 0
+      ) {
+        // HY-TEK represents each 100 relay leg as its opening 50 followed by
+        // the full leg time. Convert each pair to two 50 lap splits.
+        $relay_laps = [];
+        $valid_pairs = true;
+        $relay_time_to_seconds = static function (string $time): float {
+          if (str_contains($time, ':')) {
+            [$minutes, $seconds] = explode(':', $time, 2);
+            return ((int) $minutes * 60) + (float) $seconds;
+          }
+          return (float) $time;
+        };
+        for ($i = 0; $i < count($split); $i += 2) {
+          $first_50 = $relay_time_to_seconds($split[$i]);
+          $leg_100 = $relay_time_to_seconds($split[$i + 1]);
+          if ($leg_100 <= $first_50) {
+            $valid_pairs = false;
+            break;
+          }
+          $relay_laps[] = number_format($first_50, 2, '.', '');
+          $relay_laps[] = number_format($leg_100 - $first_50, 2, '.', '');
+        }
+        if ($valid_pairs) {
+          $split = $relay_laps;
+        }
+      }
       if (!isset($last['splits'])) $last['splits'] = [];
       $last['splits'] = array_merge($last['splits'], $split);
       $last_line_type = 'split';
@@ -1957,6 +2031,40 @@ function process_results($content)
       static fn(array $event): bool => !empty($event['results'])
     ));
   }
+
+  // Only expose LC split data when it describes every 50-meter length. Some
+  // HY-TEK relay rows omit an intermediate 50 and provide only a swimmer's
+  // 100 leg total; labeling that value as another 50 produces false distance
+  // and cumulative columns.
+  $split_time_to_seconds = static function (string $time): float {
+    if (str_contains($time, ':')) {
+      [$minutes, $seconds] = explode(':', $time, 2);
+      return ((int) $minutes * 60) + (float) $seconds;
+    }
+    return (float) $time;
+  };
+  foreach ($events as &$event) {
+    if (!preg_match('/^(\d+) LC Meter\b/i', $event['event_name'] ?? '', $distance_match)) {
+      continue;
+    }
+    $expected_split_count = (int) $distance_match[1] / 50;
+    foreach ($event['results'] as &$result) {
+      if (empty($result['splits'])) {
+        continue;
+      }
+      $final_time = $result['finals_time'] ?? $result['result_time'] ?? null;
+      $split_total = array_sum(array_map($split_time_to_seconds, $result['splits']));
+      $final_seconds = $final_time ? $split_time_to_seconds($final_time) : null;
+      if (
+        count($result['splits']) !== $expected_split_count ||
+        ($final_seconds !== null && abs($split_total - $final_seconds) > 0.05)
+      ) {
+        unset($result['splits']);
+      }
+    }
+    unset($result);
+  }
+  unset($event);
 
   return [
     'events' => $events,
