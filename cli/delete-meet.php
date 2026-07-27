@@ -6,10 +6,11 @@ require_once __DIR__ . '/../lib/mongodb.php';
 function usage(int $exit_code = 0): void
 {
   $stream = $exit_code === 0 ? STDOUT : STDERR;
-  fwrite($stream, "Usage: php cli/delete-meet.php <slug> [--yes]\n");
+  fwrite($stream, "Usage: php cli/delete-meet.php <meet-slug> [--yes]\n");
   fwrite($stream, "\n");
-  fwrite($stream, "Deletes every document with the exact slug from MongoDB and meta/meta.json,\n");
-  fwrite($stream, "and moves matching raw files into a timestamped trash directory.\n");
+  fwrite($stream, "Deletes every document belonging to the meet from MongoDB and meta/meta.json,\n");
+  fwrite($stream, "and moves all associated raw files into a timestamped trash directory.\n");
+  fwrite($stream, "An individual document slug is also accepted for backward compatibility.\n");
   fwrite($stream, "Use --yes to skip the interactive confirmation.\n");
   exit($exit_code);
 }
@@ -35,8 +36,8 @@ if (count($positional) !== 1) {
   usage(1);
 }
 
-$slug = $positional[0];
-if (!preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug)) {
+$requested_slug = $positional[0];
+if (!preg_match('/^[a-z0-9][a-z0-9-]*$/', $requested_slug)) {
   fail('Invalid slug. Only lowercase letters, numbers, and hyphens are allowed.');
 }
 
@@ -52,22 +53,48 @@ if (is_file($meta_path)) {
 
 $matching_file_metadata = array_values(array_filter(
   $all_file_metadata,
-  static fn(array $doc): bool => ($doc['slug'] ?? null) === $slug
+  static function (array $doc) use ($requested_slug): bool {
+    $derived_meet_slug = slugify(
+      ($doc['meet_name'] ?? '') . '-' . ($doc['meet_start_date'] ?? '')
+    );
+
+    return ($doc['meet_slug'] ?? null) === $requested_slug ||
+      $derived_meet_slug === $requested_slug ||
+      ($doc['slug'] ?? null) === $requested_slug;
+  }
 ));
 
 $mongo = null;
 $matching_mongo_metadata = [];
+$mongo_filter = [
+  '$or' => [
+    ['meet_slug' => $requested_slug],
+    ['slug' => $requested_slug],
+  ],
+];
 if (!empty($_ENV['MONGODB_URI'])) {
   try {
     $mongo = new MongoDBLibrary();
     $matching_mongo_metadata = iterator_to_array(
-      $mongo->collection->find(['slug' => $slug]),
+      $mongo->collection->find($mongo_filter),
       false
     );
   } catch (Throwable $e) {
     fail('Could not query MongoDB: ' . $e->getMessage() . '. No changes were made.');
   }
 }
+
+$document_slugs = [];
+foreach (array_merge($matching_mongo_metadata, $matching_file_metadata) as $doc) {
+  $document_slug = (string) ($doc['slug'] ?? '');
+  if ($document_slug !== '') {
+    $document_slugs[$document_slug] = $document_slug;
+  }
+}
+if ($document_slugs === []) {
+  $document_slugs[$requested_slug] = $requested_slug;
+}
+$document_slugs = array_values($document_slugs);
 
 $raw_files = [];
 $raw_directories = [
@@ -79,14 +106,16 @@ $raw_directories = [
   RAW_DIR . 'standards/',
 ];
 
-foreach ($raw_directories as $directory) {
-  if (!is_dir($directory)) {
-    continue;
-  }
+foreach ($document_slugs as $document_slug) {
+  foreach ($raw_directories as $directory) {
+    if (!is_dir($directory)) {
+      continue;
+    }
 
-  foreach (glob($directory . $slug . '.*') ?: [] as $path) {
-    if (is_file($path)) {
-      $raw_files[$path] = $path;
+    foreach (glob($directory . $document_slug . '.*') ?: [] as $path) {
+      if (is_file($path)) {
+        $raw_files[$path] = $path;
+      }
     }
   }
 }
@@ -97,17 +126,21 @@ $json_count = count($matching_file_metadata);
 $file_count = count($raw_files);
 
 if ($mongo_count === 0 && $json_count === 0 && $file_count === 0) {
-  fwrite(STDOUT, "Nothing found for slug: $slug\n");
+  fwrite(STDOUT, "Nothing found for meet slug or document slug: $requested_slug\n");
   exit(2);
 }
 
-fwrite(STDOUT, "Found for '$slug':\n");
+fwrite(STDOUT, "Found for '$requested_slug':\n");
 fwrite(STDOUT, "  MongoDB documents: $mongo_count\n");
 fwrite(STDOUT, "  meta.json records: $json_count\n");
 fwrite(STDOUT, "  raw files: $file_count\n");
+fwrite(STDOUT, "  document slugs:\n");
+foreach ($document_slugs as $document_slug) {
+  fwrite(STDOUT, "    - $document_slug\n");
+}
 
 if (!$skip_confirmation) {
-  fwrite(STDOUT, "\nMove files to trash and delete these metadata records? [y/N] ");
+  fwrite(STDOUT, "\nDelete this entire meet and move its files to trash? [y/N] ");
   $answer = strtolower(trim((string) fgets(STDIN)));
   if (!in_array($answer, ['y', 'yes'], true)) {
     fwrite(STDOUT, "Cancelled; no changes were made.\n");
@@ -120,14 +153,15 @@ if (!is_dir($trash_root) && !mkdir($trash_root, 0755, true) && !is_dir($trash_ro
   fail("Could not create trash directory: $trash_root");
 }
 
-$trash_name = gmdate('Ymd-His') . '-' . $slug . '-' . bin2hex(random_bytes(3));
+$trash_name = gmdate('Ymd-His') . '-' . $requested_slug . '-' . bin2hex(random_bytes(3));
 $trash_dir = $trash_root . '/' . $trash_name;
 if (!mkdir($trash_dir, 0755, true)) {
   fail("Could not create trash entry: $trash_dir");
 }
 
 $backup = [
-  'slug' => $slug,
+  'requested_slug' => $requested_slug,
+  'document_slugs' => $document_slugs,
   'deleted_at' => gmdate(DATE_ATOM),
   'mongodb_documents' => $matching_mongo_metadata,
   'meta_json_records' => $matching_file_metadata,
@@ -146,7 +180,7 @@ if ($backup_json === false || file_put_contents($backup_path, $backup_json) === 
 
 if ($mongo !== null && $mongo_count > 0) {
   try {
-    $result = $mongo->collection->deleteMany(['slug' => $slug]);
+    $result = $mongo->collection->deleteMany($mongo_filter);
     if ($result->getDeletedCount() !== $mongo_count) {
       fail(
         "MongoDB deleted {$result->getDeletedCount()} of $mongo_count expected documents. " .
@@ -161,7 +195,15 @@ if ($mongo !== null && $mongo_count > 0) {
 if ($json_count > 0) {
   $remaining_metadata = array_values(array_filter(
     $all_file_metadata,
-    static fn(array $doc): bool => ($doc['slug'] ?? null) !== $slug
+    static function (array $doc) use ($requested_slug): bool {
+      $derived_meet_slug = slugify(
+        ($doc['meet_name'] ?? '') . '-' . ($doc['meet_start_date'] ?? '')
+      );
+
+      return ($doc['meet_slug'] ?? null) !== $requested_slug &&
+        $derived_meet_slug !== $requested_slug &&
+        ($doc['slug'] ?? null) !== $requested_slug;
+    }
   ));
   $encoded = json_encode($remaining_metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
   if ($encoded === false || file_put_contents($meta_path, $encoded) === false) {
