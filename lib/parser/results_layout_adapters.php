@@ -78,7 +78,7 @@ final class StackedResultsLayoutAdapter extends AbstractResultsLayoutAdapter
             '/^Name Finals Time$/i' => 45,
             '/^Seed Time(?: Points)?$/i' => 30,
             '/^Yr School$/i' => 35,
-            '/^Name School Finals (?:Time|Score)(?: Points)?$/i' => 45,
+            '/^Name School Finals (?:Time|Score)(?: Points)?(?: Prelim Time)?$/i' => 45,
             '/^Team Relay (?:Finals|Prelim|Seed)/i' => 45,
             '/^Team Finals Time$/i' => 45,
             '/^RelayTeam Finals Time$/i' => 45,
@@ -222,5 +222,80 @@ final class ResultsLayoutAdapterRegistry
         }
 
         return $selected->prepare($lines, $selected_score);
+    }
+}
+
+final class ResultsPasteQualityDetector
+{
+    /**
+     * Classify only strong clipboard-layout evidence. "unknown" remains
+     * uploadable so a new but valid HY-TEK row format is not rejected merely
+     * because it has not appeared in the regression corpus.
+     */
+    public function analyze(string $content): array
+    {
+        $lines = array_values(array_filter(array_map(
+            static fn(string $line): string => trim(preg_replace('/\s+/', ' ', $line)),
+            preg_split('/\r\n|\n|\r/', $content) ?: []
+        ), static fn(string $line): bool => $line !== ''));
+
+        $normal_header_patterns = [
+            '/^Name Age Team (?:Seed Time )?(?:Prelim Time )?Finals Time(?: Points)?$/i',
+            '/^Name (?:Yr|Year) (?:Team|School) (?:Seed Time )?(?:Prelim Time )?Finals Time(?: Points)?$/i',
+            '/^Team Relay (?:Seed Time )?(?:Prelim Time )?Finals Time(?: Points)?$/i',
+        ];
+        $normal_headers = 0;
+        foreach ($lines as $line) {
+            foreach ($normal_header_patterns as $pattern) {
+                if (preg_match($pattern, $line)) {
+                    $normal_headers++;
+                    break;
+                }
+            }
+        }
+
+        $has_line = static function (array $values, string $pattern): bool {
+            foreach ($values as $value) {
+                if (preg_match($pattern, $value)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        $scrambled_signatures = 0;
+        if (
+            $has_line($lines, '/^(?:Prelim Time )?Finals Time(?: Points)?$/i') &&
+            $has_line($lines, '/^Name (?:Age|Yr|Year) (?:Team|School)$/i')
+        ) {
+            $scrambled_signatures++;
+        }
+        if (
+            $has_line($lines, '/^Name Finals Time$/i') &&
+            $has_line($lines, '/^(?:Age Team|Yr School)$/i')
+        ) {
+            $scrambled_signatures++;
+        }
+        if ($normal_headers > 0) {
+            return [
+                'quality' => 'normal',
+                'normal_headers' => $normal_headers,
+                'scrambled_signatures' => $scrambled_signatures,
+            ];
+        }
+
+        if ($scrambled_signatures > 0) {
+            return [
+                'quality' => 'scrambled',
+                'normal_headers' => 0,
+                'scrambled_signatures' => $scrambled_signatures,
+            ];
+        }
+
+        return [
+            'quality' => 'unknown',
+            'normal_headers' => 0,
+            'scrambled_signatures' => 0,
+        ];
     }
 }

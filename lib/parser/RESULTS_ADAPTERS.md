@@ -44,3 +44,14 @@ Add at least one raw fixture and assert:
 As layout-specific row assemblers are extracted from `process_results()`, they
 should live beside their adapter while retaining the canonical result keys
 used by the templates.
+
+## New paste policy
+
+`ResultsPasteQualityDetector` is intentionally narrower than the compatibility
+parser. New uploads with strong evidence of vertically scrambled columns are
+rejected with instructions to copy the PDF directly from Google Chrome.
+Normal row-oriented text is accepted, and unknown layouts are not rejected
+solely because they lack a known signature.
+
+This keeps existing stored documents readable without treating arbitrary
+scrambled clipboard text as a supported input contract.

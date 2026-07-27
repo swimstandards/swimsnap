@@ -91,8 +91,9 @@ class MongoDBLibrary
             $new_time = strtotime($new_doc['file_datetime']);
             $old_time = strtotime($existing['file_datetime']);
 
-            if ($new_time <= $old_time) {
-                // No update needed
+            if ($new_time < $old_time) {
+                // Do not replace a newer source document with an older one.
+                // Equal timestamps are allowed so a corrected copy can overwrite.
                 return null;
             }
         }

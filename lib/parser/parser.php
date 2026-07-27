@@ -14,6 +14,7 @@
 
 require_once __DIR__ . '/../utils.php';
 require_once __DIR__ . '/../mongodb.php'; // MongoDB wrapper
+require_once __DIR__ . '/results_layout_adapters.php';
 
 
 function handle_text_upload(string $content): array
@@ -153,6 +154,17 @@ function handle_text_upload(string $content): array
       'message' => '❌ Error: Could not identify meet name or type.'
     ];
   }
+
+  if ($metadata['type'] === 'results') {
+    $paste_quality = (new ResultsPasteQualityDetector())->analyze($content);
+    if ($paste_quality['quality'] === 'scrambled') {
+      return [
+        'status' => 'error',
+        'message' => '❌ The pasted results appear to have scrambled PDF columns. Download the PDF and open it directly in the Google Chrome browser—not in Google Drive’s built-in PDF viewer. Then select all, copy, and paste again.'
+      ];
+    }
+  }
+
   // Build base string for hashing (include sheet_name if present)
   $base_parts = [];
   if (!empty($metadata['sheet_name'])) {
@@ -204,10 +216,16 @@ function handle_text_upload(string $content): array
     // Fallback to meta.json
     $all_meta = load_meta_json();
     $exists = false;
+    $matched = false;
 
     foreach ($all_meta as &$doc) {
       if ($doc['slug'] === $slug && $doc['type'] === $metadata['type']) {
-        if (!empty($doc['file_datetime']) && strtotime($metadata['file_datetime']) <= strtotime($doc['file_datetime'])) {
+        $matched = true;
+        if (
+          !empty($doc['file_datetime']) &&
+          !empty($metadata['file_datetime']) &&
+          strtotime($metadata['file_datetime']) < strtotime($doc['file_datetime'])
+        ) {
           $exists = true;
         } else {
           // Preserve when this document first appeared on SwimSnap.
@@ -217,8 +235,9 @@ function handle_text_upload(string $content): array
         break;
       }
     }
+    unset($doc);
 
-    if (!$exists) {
+    if (!$matched) {
       $all_meta[] = $metadata;
     }
 

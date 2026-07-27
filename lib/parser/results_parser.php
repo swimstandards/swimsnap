@@ -11,6 +11,33 @@ require_once __DIR__ . '/results_layout_adapters.php';
 
 function parse_result_line($line)
 {
+  // Normal older HY-TEK row with final time and integer points:
+  // "1 Katie Rauch 8 ATOM-NC 15.95 20"
+  if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+(\d{1,2})\s+(.+?)\s+([Xx]?(?:DQ|DFS|NS|(?:\d{1,2}:)?\d{1,2}\.\d{2}))\s+(\d+)$/', $line, $m)) {
+    $result = $m[5];
+    $note = null;
+    if (preg_match('/^[Xx](.+)$/', $result, $mx)) {
+      $note = 'X';
+      $result = $mx[1];
+    }
+    if (in_array($result, ['DQ', 'DFS', 'NS'], true)) {
+      $note = $result;
+    }
+
+    return [
+      'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
+      'name' => trim($m[2]),
+      'age' => (int) $m[3],
+      'team' => trim($m[4]),
+      'seed_time' => null,
+      'result_time' => in_array($result, ['DQ', 'DFS', 'NS'], true) ? null : $result,
+      'note' => $note,
+      'points' => (int) $m[6],
+      'qualified' => false,
+      'relay' => null,
+    ];
+  }
+
   // Compact dual-meet individual row:
   // "Lakeville North High School71 Linsmeyer, Ariah 2:20.54 6"
   // "Lakeville South High School8--- Schliep, Claire X2:59.91"
@@ -182,6 +209,21 @@ function parse_result_line($line)
     ];
   }
 
+  // Preliminary row with a qualifying marker but no seed-time column:
+  // "1 Hagen Dietrich 13 WST-NC 53.73 q"
+  if (preg_match('/^(\d+)\s+(.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})\s+q$/i', $line, $m)) {
+    return [
+      "rank" => $m[1],
+      "name" => trim($m[2]),
+      "age" => (int)$m[3],
+      "team" => $m[4],
+      "seed_time" => null,
+      "result_time" => $m[5],
+      "qualified" => true,
+      "relay" => null
+    ];
+  }
+
   // Fallback: rank name age team result_time (no seed, no points)
   if (preg_match('/^(\d+)\s+(.+?)\s+(\d{1,2})\s+([A-Z0-9\-]+)\s+(\d{1,2}[:.]\d{1,2}(?:\.\d{2})?)$/', $line, $m)) {
     return [
@@ -319,6 +361,42 @@ function parse_result_line($line)
 
 function parse_relay_line($line)
 {
+  // Masters relay rows may explicitly print an NT seed before the final:
+  // "1 SwimMAC Masters - Charlotte-13 A NT 5:09.79"
+  if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+([A-Z])\s+(NT|DQ|DFS|NS|(?:\d{1,2}:)?\d{1,2}\.\d{2})\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})$/i', $line, $m)) {
+    return [
+      'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
+      'team' => trim($m[2]),
+      'relay' => $m[3],
+      'seed_time' => strtoupper($m[4]) === 'NT' ? 'NT' : $m[4],
+      'finals_time' => $m[5],
+      'status' => null,
+      'note' => null,
+      'points' => null,
+    ];
+  }
+
+  // Older HY-TEK 7 relay reports put the final time first, followed by an
+  // optional record marker and the prelim/seed time:
+  // "1 Charlotte Catholic 1:46.96 D 1:49.64"
+  // "2 Chapel Hill 1:53.78 1:55.81"
+  if (preg_match('/^(\*?\d+|---)\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2}|DQ|DFS|NS)(?:\s+([A-Z]))?\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})(?:\s+([A-Z]))?$/i', $line, $m)) {
+    $final = $m[3];
+    return [
+      'rank' => $m[1] === '---' ? null : ltrim($m[1], '*'),
+      'team' => trim($m[2]),
+      // HY-TEK 7 omits the relay letter for this report style. Keep the
+      // generic relay marker so the renderer uses finals_time, while the
+      // actual record marker remains in note.
+      'relay' => 'Relay',
+      'seed_time' => $m[5],
+      'finals_time' => in_array(strtoupper($final), ['DQ', 'DFS', 'NS'], true) ? null : $final,
+      'status' => in_array(strtoupper($final), ['DQ', 'DFS', 'NS'], true) ? strtoupper($final) : null,
+      'note' => $m[4] ?? ($m[6] ?? null),
+      'points' => null,
+    ];
+  }
+
   // Compact dual-meet relay row:
   // "A1 Lakeville South High School 2:17.21 8"
   // "C5 Lakeville North High School x2:09.88"
@@ -484,7 +562,10 @@ function parse_split_line($line)
     // of bare cumulative checkpoints so the UI can rebuild both the lap and
     // cumulative columns consistently. A non-increasing series is already a
     // list of lap times and remains unchanged.
-    if (count($splits) > 1) {
+    // Two-value 100-yard/100-meter lines are already lap splits in older
+    // HY-TEK exports (for example: 29.08 32.97). Do not reinterpret the
+    // second lap as a cumulative checkpoint without event-level context.
+    if (count($splits) > 2) {
       $to_seconds = static function (string $time): float {
         if (str_contains($time, ':')) {
           [$minutes, $seconds] = explode(':', $time, 2);
@@ -551,6 +632,7 @@ function process_results($content)
   $persist_stacked_layout = $layout_document->persistsAcrossEvents;
   $document_stacked_layout = false;
   $stacked_layout = false;
+  $pending_age = null;
   $pending_team = null;
   $pending_seed_time = null;
   $pending_individual = null;
@@ -562,8 +644,9 @@ function process_results($content)
   $last_line_type = 'other';
   $newspaper_pending = null;
 
-  $reset_stacked_state = static function () use (&$document_stacked_layout, &$stacked_layout, &$pending_team, &$pending_seed_time, &$pending_individual, &$pending_relay, &$pending_stacked_result, &$pending_dual_individual, &$pending_relay_header, &$pending_ranks, &$last_line_type, &$newspaper_pending) {
+  $reset_stacked_state = static function () use (&$document_stacked_layout, &$stacked_layout, &$pending_age, &$pending_team, &$pending_seed_time, &$pending_individual, &$pending_relay, &$pending_stacked_result, &$pending_dual_individual, &$pending_relay_header, &$pending_ranks, &$last_line_type, &$newspaper_pending) {
     $stacked_layout = $document_stacked_layout;
+    $pending_age = null;
     $pending_team = null;
     $pending_seed_time = null;
     $pending_individual = null;
@@ -650,6 +733,7 @@ function process_results($content)
       strcasecmp($line, 'Name Finals Time') === 0 ||
       strcasecmp($line, 'Yr School') === 0 ||
       strcasecmp($line, 'Name School Finals Time') === 0 ||
+      strcasecmp($line, 'Name School Finals Time Prelim Time') === 0 ||
       strcasecmp($line, 'Name School Finals Time Points') === 0 ||
       strcasecmp($line, 'Name School Finals Score') === 0 ||
       strcasecmp($line, 'Name School Finals Score Points') === 0 ||
@@ -675,8 +759,10 @@ function process_results($content)
     }
 
     if (preg_match('/^Team Relay\s+(?:Finals TimePrelim Time|Prelim TimeSeed Time|Finals TimeSeed Time)$/i', $line)) {
-      $document_stacked_layout = $persist_stacked_layout;
-      $stacked_layout = true;
+      // These older HY-TEK rows contain the complete relay result on one
+      // line; only the swimmer names/splits follow vertically.
+      $document_stacked_layout = false;
+      $stacked_layout = false;
       $in_relay = true;
       $last_line_type = 'other';
       continue;
@@ -712,6 +798,7 @@ function process_results($content)
     }
 
     if (
+      $stacked_layout &&
       !$in_relay &&
       $current_event &&
       $current_event['event_number'] === null &&
@@ -874,6 +961,20 @@ function process_results($content)
     // "Girls 8 & Under 100 LC Meter Freestyle"
     // "Girls Senior 100 Yard Freestyle"
     if (preg_match('/^(Girls|Boys|Mixed)\s+(\d.*|Senior\s+\d.*)$/i', $line, $m)) {
+      $gender = ucfirst(strtolower($m[1]));
+      $event_name = normalize_event_name($m[2]);
+
+      // A combined finals/preliminaries report repeats the event heading before
+      // each round. Keep those results in one event; the following round heading
+      // will label the rows correctly.
+      if (
+        $current_event &&
+        $current_event['gender'] === $gender &&
+        $current_event['event_name'] === $event_name
+      ) {
+        continue;
+      }
+
       $finalize_pending_relay();
       if ($current_event) {
         $current_event['results'] = $current_results;
@@ -882,8 +983,8 @@ function process_results($content)
 
       $current_event = [
         'event_number' => null,
-        'gender' => ucfirst(strtolower($m[1])),
-        'event_name' => normalize_event_name($m[2]),
+        'gender' => $gender,
+        'event_name' => $event_name,
         'results' => []
       ];
       $current_results = [];
@@ -1030,6 +1131,41 @@ function process_results($content)
     if ($stacked_layout && preg_match('/^\d+\)\s+/', $line)) {
       $finalize_pending_relay();
       $last_line_type = 'swimmer_list';
+      continue;
+    }
+
+    // Masters-style stacked reports emit age before team/seed/result. Their
+    // rank is included on the eventual result line, so this standalone number
+    // must not enter the rank queue used by other stacked layouts.
+    if (
+      $persist_stacked_layout &&
+      !$in_relay &&
+      $pending_team === null &&
+      preg_match('/^(?:1[89]|[2-9]\d)$/', $line)
+    ) {
+      $pending_age = (int) $line;
+      $last_line_type = 'other';
+      continue;
+    }
+
+    if ($stacked_layout && !$in_relay && preg_match('/^(\*?\d+)\s+([^,]+,\s+[^\d]+?)\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})$/', $line, $m)) {
+      $current_results[] = [
+        'rank' => ltrim($m[1], '*'), 'name' => trim($m[2]), 'age' => null,
+        'team' => trim($m[3]), 'seed_time' => $m[5], 'result_time' => $m[4],
+        'note' => null, 'points' => null, 'qualified' => false, 'relay' => null,
+        'round' => $current_round,
+      ];
+      $last_line_type = 'other';
+      continue;
+    }
+    if ($stacked_layout && !$in_relay && preg_match('/^(\*?\d+)\s+([^,]+,\s+[^\d]+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})$/', $line, $m)) {
+      $current_results[] = [
+        'rank' => ltrim($m[1], '*'), 'name' => trim($m[2]), 'age' => null,
+        'team' => trim($m[4]), 'seed_time' => $m[5], 'result_time' => $m[3],
+        'note' => null, 'points' => null, 'qualified' => false, 'relay' => null,
+        'round' => $current_round,
+      ];
+      $last_line_type = 'other';
       continue;
     }
 
@@ -1266,6 +1402,39 @@ function process_results($content)
         continue;
       }
 
+    }
+
+    // Older HY-TEK school results use a row layout with no age column. The
+    // school may appear before both times or between finals and prelim time:
+    // "1 Lambert, Zack Hickory Ridge 54.18 52.13"
+    // "2 Bittner, Bobby 52.78 West Carteret 53.83"
+    if ($stacked_layout && !$in_relay && preg_match('/^(\*?\d+)\s+([^,]+,\s+[^\d]+?)\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})$/', $line, $m)) {
+      $current_results[] = [
+        'rank' => ltrim($m[1], '*'),
+        'name' => trim($m[2]),
+        'age' => null,
+        'team' => trim($m[3]),
+        'seed_time' => $m[5],
+        'result_time' => $m[4],
+        'note' => null,
+        'points' => null,
+        'qualified' => false,
+        'relay' => null,
+        'round' => $current_round,
+      ];
+      $last_line_type = 'other';
+      continue;
+    }
+
+    if ($stacked_layout && !$in_relay && preg_match('/^(\*?\d+)\s+([^,]+,\s+[^\d]+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})\s+(.+?)\s+((?:\d{1,2}:)?\d{1,2}\.\d{2})$/', $line, $m)) {
+      $current_results[] = [
+        'rank' => ltrim($m[1], '*'), 'name' => trim($m[2]), 'age' => null,
+        'team' => trim($m[4]), 'seed_time' => $m[5], 'result_time' => $m[3],
+        'note' => null, 'points' => null, 'qualified' => false, 'relay' => null,
+        'round' => $current_round,
+      ];
+      $last_line_type = 'other';
+      continue;
     }
 
     if ($stacked_layout && !$in_relay) {
@@ -1794,19 +1963,25 @@ function process_results($content)
       }
     }
 
-    if ($stacked_layout && preg_match('/^(.+?)---\s+([^,]+),\s+(.+?)\s+(DQ|DFS)$/', $line, $m)) {
+    if (
+      $stacked_layout &&
+      !$in_relay &&
+      $pending_team &&
+      preg_match('/^(?:((?:\d{1,2}:)?\d{1,2}\.\d{2}))?---\s+([^,]+),\s+(.+?)\s+(NS|DQ|DFS)$/', $line, $m)
+    ) {
       $current_results[] = [
         'rank' => null,
         'name' => trim($m[2]) . ' ' . trim($m[3]),
-        'age' => null,
-        'team' => trim($m[1]),
-        'seed_time' => $pending_seed_time,
+        'age' => $pending_age,
+        'team' => $pending_team,
+        'seed_time' => ($m[1] ?? '') !== '' ? $m[1] : $pending_seed_time,
         'result_time' => null,
         'note' => $m[4],
         'qualified' => false,
         'relay' => null,
         'round' => $current_round,
       ];
+      $pending_age = null;
       $pending_team = null;
       $pending_seed_time = null;
       $last_line_type = 'other';
@@ -1823,7 +1998,7 @@ function process_results($content)
       $current_results[] = [
         'rank' => ltrim($m[1], '*'),
         'name' => trim($m[2]) . ' ' . trim($m[3]),
-        'age' => null,
+        'age' => $pending_age,
         'team' => $pending_team,
         'seed_time' => $pending_seed_time,
         'result_time' => in_array($m[4], ['DQ', 'DFS']) ? null : $m[4],
@@ -1835,6 +2010,7 @@ function process_results($content)
       ];
       $pending_team = null;
       $pending_seed_time = null;
+      $pending_age = null;
       $last_line_type = 'other';
       continue;
     }
@@ -1848,9 +2024,9 @@ function process_results($content)
       $current_results[] = [
         'rank' => ltrim($m[1], '*'),
         'name' => trim($m[2]) . ' ' . trim($m[3]),
-        'age' => null,
+        'age' => $pending_age,
         'team' => $pending_team,
-        'seed_time' => null,
+        'seed_time' => $pending_seed_time,
         'result_time' => in_array($m[4], ['DQ', 'DFS']) ? null : $m[4],
         'note' => in_array($m[4], ['DQ', 'DFS']) ? $m[4] : null,
         'points' => $parse_points($m[5] ?? null),
@@ -1860,6 +2036,7 @@ function process_results($content)
       ];
       $pending_team = null;
       $pending_seed_time = null;
+      $pending_age = null;
       $last_line_type = 'other';
       continue;
     }
@@ -1873,7 +2050,7 @@ function process_results($content)
       $current_results[] = [
         'rank' => ltrim($m[1], '*'),
         'name' => trim($m[2]) . ' ' . trim($m[3]),
-        'age' => null,
+        'age' => $pending_age,
         'team' => $pending_team,
         'seed_time' => $pending_seed_time,
         'result_time' => in_array($m[4], ['DQ', 'DFS']) ? null : $m[4],
@@ -1885,6 +2062,7 @@ function process_results($content)
       ];
       $pending_team = null;
       $pending_seed_time = null;
+      $pending_age = null;
       $last_line_type = 'other';
       continue;
     }
@@ -1963,16 +2141,34 @@ function process_results($content)
     $split = parse_split_line($line);
     if ($split && !empty($current_results)) {
       $last = &$current_results[count($current_results) - 1];
+      $split_time_to_seconds = static function (string $time): float {
+        if (str_contains($time, ':')) {
+          [$minutes, $seconds] = explode(':', $time, 2);
+          return ((int) $minutes * 60) + (float) $seconds;
+        }
+        return (float) $time;
+      };
+
+      // Some older HY-TEK reports print a 100 split as lap + cumulative
+      // (25.32 54.32), while others print two laps (29.08 32.97). Use the
+      // recorded result to distinguish them instead of guessing from order.
+      $recorded_result_time = $last['finals_time'] ?? ($last['result_time'] ?? null);
+      if (count($split) === 2 && $recorded_result_time !== null) {
+        $first = $split_time_to_seconds($split[0]);
+        $second = $split_time_to_seconds($split[1]);
+        $final = $split_time_to_seconds((string) $recorded_result_time);
+        if (abs($second - $final) < 0.01 && abs(($first + $second) - $final) >= 0.01) {
+          $split[1] = number_format($second - $first, 2, '.', '');
+        }
+      }
       if (
         ($last['relay'] ?? null) &&
-        $current_event &&
-        preg_match('/^400 LC Meter .*Relay$/i', $current_event['event_name'] ?? '') &&
+        ($last['finals_time'] ?? null) !== null &&
         count($split) % 2 === 0
       ) {
         // HY-TEK represents each 100 relay leg as its opening 50 followed by
         // the full leg time. Convert each pair to two 50 lap splits.
         $relay_laps = [];
-        $valid_pairs = true;
         $relay_time_to_seconds = static function (string $time): float {
           if (str_contains($time, ':')) {
             [$minutes, $seconds] = explode(':', $time, 2);
@@ -1980,7 +2176,16 @@ function process_results($content)
           }
           return (float) $time;
         };
-        for ($i = 0; $i < count($split); $i += 2) {
+        $raw_total = 0.0;
+        foreach ($split as $raw_split) {
+          $raw_total += $relay_time_to_seconds($raw_split);
+        }
+        $final_total = $relay_time_to_seconds((string) ($last['finals_time'] ?? '0'));
+        // If the parsed laps already sum to the recorded final, they have
+        // already been normalized and must not be converted a second time.
+        $already_matches_final = $final_total > 0 && abs($raw_total - $final_total) < 0.01;
+        $valid_pairs = true;
+        for ($i = 0; !$already_matches_final && $i < count($split); $i += 2) {
           $first_50 = $relay_time_to_seconds($split[$i]);
           $leg_100 = $relay_time_to_seconds($split[$i + 1]);
           if ($leg_100 <= $first_50) {
@@ -1990,7 +2195,11 @@ function process_results($content)
           $relay_laps[] = number_format($first_50, 2, '.', '');
           $relay_laps[] = number_format($leg_100 - $first_50, 2, '.', '');
         }
-        if ($valid_pairs) {
+        $converted_total = 0.0;
+        foreach ($relay_laps as $relay_lap) {
+          $converted_total += $relay_time_to_seconds($relay_lap);
+        }
+        if (!$already_matches_final && $valid_pairs && $final_total > 0 && abs($converted_total - $final_total) < 0.01) {
           $split = $relay_laps;
         }
       }
@@ -2009,7 +2218,6 @@ function process_results($content)
     $current_event['results'] = $current_results;
     $events[] = $current_event;
   }
-
   // HY-TEK finals exports can append preliminary-only rows for reference.
   // They are not part of the final results and should remain visible only
   // when the uploaded document is itself a preliminaries report.

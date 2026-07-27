@@ -68,7 +68,7 @@
       <div class="alert alert-info">
         <strong>📌 Upload Instructions</strong><br><br>
         <ol class="mb-2 ps-3">
-          <li>Open the PDF in Google Chrome</li>
+          <li>Download the PDF and open it directly in the Google Chrome browser—not in Google Drive’s built-in PDF viewer</li>
           <li>Press <kbd>Ctrl + A</kbd> (Windows) or <kbd>Command + A</kbd> (Mac)</li>
           <li>Copy and paste the content into the box</li>
         </ol>
