@@ -42,7 +42,7 @@ $urlToShare = $base_url . $_SERVER['REQUEST_URI'];
   </div>
 
   <div class="col-md-4 text-md-end text-start">
-    <div class="d-inline-flex flex-wrap gap-2 align-items-center">
+    <div class="d-inline-flex flex-wrap gap-2 align-items-center" id="documentActions">
       <div id="qrcode"></div>
       <button class="btn btn-sm btn-outline-primary" id="copyLinkBtn">
         <i class="bi bi-clipboard"></i> Copy

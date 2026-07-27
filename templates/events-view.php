@@ -15,6 +15,11 @@
 
 <h1>Event Schedule</h1>
 <?php include __DIR__ . '/shared/meta-block.php' ?>
+<?php
+$export_type = 'events';
+$export_data = ['sessions' => $event_sessions];
+include __DIR__ . '/shared/export-json-block.php';
+?>
 
 <div class="row mb-4">
   <div class="col-md mb-2">

@@ -19,6 +19,11 @@
 
 <?php include __DIR__ . '/shared/note-report-block.php' ?>
 <?php include __DIR__ . '/shared/meta-block.php' ?>
+<?php
+$export_type = 'heat_sheets';
+$export_data = $parsed_data;
+include __DIR__ . '/shared/export-json-block.php';
+?>
 
 <div class="mb-3 d-flex">
   <div class="input-group" style="max-width: 400px;">

@@ -12,6 +12,12 @@
 <p><strong>Date:</strong> <?= $meet_info['start_date'] ?> to <?= $meet_info['end_date'] ?></p>
 
 <?php
+$export_type = 'standards';
+$export_data = ['standards' => $parsed_rows];
+include __DIR__ . '/shared/export-json-block.php';
+?>
+
+<?php
 $show_age_group = array_reduce($parsed_rows, fn($carry, $row) => $carry || isset($row['age_group']), false);
 ?>
 

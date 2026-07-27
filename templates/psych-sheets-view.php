@@ -19,6 +19,11 @@
 
 <?php include __DIR__ . '/shared/note-report-block.php' ?>
 <?php include __DIR__ . '/shared/meta-block.php' ?>
+<?php
+$export_type = 'psych_sheets';
+$export_data = ['events' => $parsed_events];
+include __DIR__ . '/shared/export-json-block.php';
+?>
 
 <!-- Desktop version -->
 <div class="d-none d-md-flex mb-3 flex-wrap align-items-center">
