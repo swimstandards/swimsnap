@@ -14,6 +14,9 @@ SwimSnap powers [swimsnap.com](https://swimsnap.com), but the code is open so th
 - 📊 View event schedules and time cuts in responsive, sortable tables
 - 📂 Community-supported upload system — no login needed
 - 🔍 Fast browsing, searching, and filtering
+- 🔗 Community resource directory for public swimming websites, PDFs, and images
+- 🏊 Resource organization by National, Zone, and LSC (including zone-specific LSC choices)
+- ✨ Automatic link metadata previews with editable titles and descriptions
 - 📱 Fully responsive: works great on mobile and desktop
 - 🗃️ File-based system for simplicity — **MongoDB backed metadata support**
 
@@ -28,6 +31,7 @@ webroot/              → Public-facing app
   ├── heat-sheets/
   ├── psych-sheets/
   ├── results/
+  ├── resources/          → Community resource directory routes
   ├── css/
   ├── images/ 
 
@@ -247,6 +251,18 @@ This will copy example input files and metadata so you can explore how SwimSnap 
 - ⌨️ Paste psych sheet / program / result as plain text
 - ✅ Auto metadata detection
 - ✅ MongoDB-backed deduplication (or fallback to meta.json)
+
+---
+
+## Community Resources
+
+The `/resources/` directory lets the community share public swimming-related links. It supports webpages, PDFs, and image URLs. Resource metadata is fetched automatically, then contributors can edit the title and description before posting.
+
+- Resources are grouped as **National**, **Zone**, or **LSC**; Zone and LSC selections use the included USA Swimming zone/LSC taxonomy.
+- Duplicate canonical URLs are rejected.
+- Resources can be shown in card or list view and corrected later through the Edit action.
+- Resource submissions use invisible reCAPTCHA when `RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET` are configured.
+- With MongoDB, resources are saved in the `resources` collection; otherwise they are stored under the `resources` key in `meta/meta.json`.
 
 ---
 

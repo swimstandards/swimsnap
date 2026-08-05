@@ -29,9 +29,14 @@ class MongoDBLibrary
         $this->db = $this->client->selectDatabase($db_name);
         $this->collection = $this->db->selectCollection($collection_name);
 
-        // Ensure slug+type unique index
-        $this->ensure_unique_slug_type_index();
-        $this->ensure_text_index();
+        // Meet documents and community resources have different schemas.
+        if ($collection_name === 'docs') {
+            $this->ensure_unique_slug_type_index();
+            $this->ensure_text_index();
+        } elseif ($collection_name === 'resources') {
+            $this->collection->createIndex(['url' => 1], ['unique' => true]);
+            $this->collection->createIndex(['category' => 1, 'title' => 1]);
+        }
     }
 
     public function save_doc(array $doc)

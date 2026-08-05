@@ -49,6 +49,8 @@
 
 <body>
 
+  <?php $current_path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'; ?>
+
   <?php if (!isset($full_width)): ?>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container px-4">
@@ -66,11 +68,14 @@
         <!-- Desktop Search -->
         <div class="ms-auto d-none d-lg-flex align-items-center gap-2">
           <!-- Upload Buttons -->
-          <a href="<?= $base_url ?>/upload-file.php" class="btn btn-outline-light btn-sm ms-3">
+          <a href="<?= $base_url ?>/upload-file.php" class="btn <?= str_contains($current_path, '/upload-file') ? 'btn-light' : 'btn-outline-light' ?> btn-sm ms-3">
             <i class="bi bi-file-earmark-zip me-1"></i> Event File
           </a>
-          <a href="<?= $base_url ?>/upload-data.php" class="btn btn-light btn-sm">
+          <a href="<?= $base_url ?>/upload-data.php" class="btn <?= str_contains($current_path, '/upload-data') ? 'btn-light' : 'btn-outline-light' ?> btn-sm">
             <i class="bi bi-file-earmark-text me-1"></i> Meet Doc
+          </a>
+          <a href="<?= $base_url ?>/resources/" class="btn <?= str_contains($current_path, '/resources') ? 'btn-light' : 'btn-outline-light' ?> btn-sm">
+            <i class="bi bi-bookmarks me-1"></i> Resources
           </a>
 
           <div class="position-relative" style="min-width: 280px;">

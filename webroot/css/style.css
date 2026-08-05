@@ -220,6 +220,20 @@ table.dataTable th.sorting {
   min-height: 3.25em; /* Keeps vertical space even if only 1 line */
 }
 
+.line-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.resource-shot { height: 150px; object-fit: cover; object-position: top; background: #eef4f8; }
+.resource-list-image { width: 82px; height: 54px; object-fit: cover; object-position: top; border: 1px solid #dee2e6; border-radius: .25rem; background: #eef4f8; }
+.resource-inline-preview { display: flex; align-items: center; gap: 1rem; padding: .75rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: .375rem; }
+.resource-inline-preview img { width: 150px; height: 84px; object-fit: cover; object-position: top; border: 1px solid #dee2e6; border-radius: .25rem; background: #eef4f8; }
+.resource-inline-preview > div { min-width: 0; overflow-wrap: anywhere; }
+.resource-edit-link { position: relative; z-index: 2; }
+.resource-list-edit { position: relative; z-index: 2; }
+form[action$="resources/update.php"] .btn + .btn { margin-left: .5rem; }
+.resource-logo-fallback { content: url('../images/resource-bg.png'); object-fit: cover; padding: 0; }
+.hero-action-button { display: flex; align-items: center; padding: 0; text-align: left; overflow: hidden; }
+.hero-action-icon { display: inline-flex; width: 2.9rem; align-self: stretch; align-items: center; justify-content: center; border-right: 1px solid rgba(255, 255, 255, .38); font-size: 1.15rem; }
+.hero-action-button > span:last-child { padding: .5rem .75rem; }
+
 @media (max-width: 767.98px) {
   .top-with-shoutout {
     top: 100px;

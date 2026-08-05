@@ -17,7 +17,7 @@ require_once __DIR__ . '/../mongodb.php'; // MongoDB wrapper
 require_once __DIR__ . '/results_layout_adapters.php';
 
 
-function handle_text_upload(string $content): array
+function handle_text_upload(string $content, string $manual_start_date = '', string $manual_end_date = ''): array
 {
   $content = trim($content);
 
@@ -108,6 +108,10 @@ function handle_text_upload(string $content): array
         $metadata["meet_name"] = trim($matches[1]);
         $metadata["meet_start_date"] = format_date_to_iso($matches[2]);
         $metadata["meet_end_date"] = format_date_to_iso($matches[2]);
+      } elseif ($line !== '') {
+        // HY-TEK 8.0 meet programs can omit dates from this title line.
+        // Preserve the meet name and request the dates from the uploader.
+        $metadata["meet_name"] = $line;
       }
     }
 
@@ -144,6 +148,34 @@ function handle_text_upload(string $content): array
     }
   }
 
+  // Some HY-TEK exports omit the usual "Meet - start to end" line. Accept
+  // dates supplied by the uploader in that case, but never overwrite dates
+  // that were present in the source document.
+  if (empty($metadata['meet_start_date']) && $manual_start_date !== '') {
+    $start = DateTime::createFromFormat('!Y-m-d', $manual_start_date);
+    $start_errors = DateTime::getLastErrors();
+    if (!$start || ($start_errors !== false && ($start_errors['warning_count'] || $start_errors['error_count'])) || $start->format('Y-m-d') !== $manual_start_date) {
+      return [
+        'status' => 'missing_dates',
+        'message' => 'Please enter a valid meet start date.'
+      ];
+    }
+
+    $metadata['meet_start_date'] = $manual_start_date;
+    $metadata['meet_end_date'] = $manual_end_date !== '' ? $manual_end_date : $manual_start_date;
+
+    if ($manual_end_date !== '') {
+      $end = DateTime::createFromFormat('!Y-m-d', $manual_end_date);
+      $end_errors = DateTime::getLastErrors();
+      if (!$end || ($end_errors !== false && ($end_errors['warning_count'] || $end_errors['error_count'])) || $end->format('Y-m-d') !== $manual_end_date || $end < $start) {
+        return [
+          'status' => 'missing_dates',
+          'message' => 'Please enter a valid meet end date that is on or after the start date.'
+        ];
+      }
+    }
+  }
+
   // `file_datetime` belongs to the source document. Do not substitute the
   // upload time here, or it becomes misleading on the public page.
   $metadata['added_at'] = date(DATE_ATOM);
@@ -152,6 +184,13 @@ function handle_text_upload(string $content): array
     return [
       'status' => 'error',
       'message' => '❌ Error: Could not identify meet name or type.'
+    ];
+  }
+
+  if (empty($metadata['meet_start_date'])) {
+    return [
+      'status' => 'missing_dates',
+      'message' => 'This HY-TEK document does not include meet dates. Please enter them below.'
     ];
   }
 

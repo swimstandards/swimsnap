@@ -99,6 +99,35 @@ function parse_swimmer_standard($line)
     return null;
 }
 
+/**
+ * Parse HY-TEK 8.0 rows that include an optional entry-status flag and a
+ * full team name. For example:
+ *   2 B Debosch, Leah 16 Carmel Swim Club-IN 5:01.54L
+ *
+ * Older formats use a compact team code and are still handled by
+ * parse_swimmer_standard(). Keep this as a separate, anchored variant so a
+ * relay row cannot be mistaken for an individual entry.
+ */
+function parse_swimmer_full_team($line)
+{
+    if (preg_match('/^(\d+)\s+(?:[A-Z]\s+)?(.+?)\s+(\d{1,2})\s+(.+?)\s+(NT|(?:\d{1,2}:)?\d{1,2}\.\d{2}[A-Z]?)(?:\s+([A-Z]+))?$/', $line, $m)) {
+        $seed_time = $m[5];
+        if (!empty($m[6])) {
+            $seed_time .= ' (' . $m[6] . ')';
+        }
+
+        return [
+            "lane" => intval($m[1]),
+            "name" => trim($m[2]),
+            "age" => intval($m[3]),
+            "team" => trim($m[4]),
+            "seed_time" => $seed_time
+        ];
+    }
+
+    return null;
+}
+
 function parse_swimmer_gender_age($line)
 {
     if (preg_match('/^(\d+)\s+(.+?)\s+([A-Z]{1,3}\d{1,2})\s+([A-Z]+-[A-Z]+)\s+((?:[A-Z]{0,4})?[\d:.]+[A-Z]{0,2}|NT)(?:\s+([A-Z]+))?$/', $line, $m)) {
@@ -127,12 +156,17 @@ function parse_team_line_standard($line)
      * Format: lane team_name relay_letter seed_time
      * Example: 3 SwimRVA-VA A 3:52.45
      */
-    if (preg_match('/^(\d+)\s+(.+?)\s+([A-Z])\s+([\d:.]+)/', $line, $matches)) {
+    if (preg_match('/^(\d+)\s+(.+?)\s+([A-Z])\s+(NT|(?:\d{1,2}:)?\d{1,2}\.\d{2}[A-Z]?)(?:\s+([A-Z]+))?$/', $line, $matches)) {
+        $seed_time = trim($matches[4]);
+        if (!empty($matches[5])) {
+            $seed_time .= ' (' . trim($matches[5]) . ')';
+        }
+
         return [
             "lane" => intval($matches[1]),
             "team_name" => trim($matches[2]),
             "relay_team" => trim($matches[3]),
-            "seed_time" => trim($matches[4])
+            "seed_time" => $seed_time
         ];
     }
     return null;
@@ -141,6 +175,10 @@ function parse_team_line_standard($line)
 
 function parse_swimmer_line($line)
 {
+    // HY-TEK 8.0 can include an entry-status flag and a multiword team name.
+    $parsed = parse_swimmer_full_team($line);
+    if ($parsed) return $parsed;
+
     // Try standard swimmer line format
     $parsed = parse_swimmer_standard($line);
     if ($parsed) return $parsed;

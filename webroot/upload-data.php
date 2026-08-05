@@ -5,8 +5,10 @@ session_start();
 
 $status = $_SESSION['upload_status'] ?? '';
 $message = $_SESSION['upload_message'] ?? '';
+$draft = $_SESSION['upload_draft'] ?? [];
 
 unset($_SESSION['upload_status'], $_SESSION['upload_message']);
+unset($_SESSION['upload_draft']);
 
 $recaptcha_site_key = $_ENV['RECAPTCHA_SITE_KEY'] ?? '';
 
@@ -20,5 +22,6 @@ $templates->addData([
 echo $templates->render('upload-data', [
   'status' => $status,
   'message' => $message,
+  'draft' => $draft,
   'recaptcha_site_key' => $recaptcha_site_key
 ]);

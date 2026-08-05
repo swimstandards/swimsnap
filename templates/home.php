@@ -27,12 +27,15 @@
       </div>
 
       <!-- Upload buttons -->
-      <div class="d-flex justify-content-between">
-        <a href="<?= $base_url ?>/upload-file.php" class="btn btn-secondary btn-lg w-100 me-2">
-          <i class="bi bi-file-earmark-zip me-1"></i> Upload Event File (.zip)
+      <div class="d-grid gap-2 d-md-flex">
+        <a href="<?= $base_url ?>/upload-file.php" class="btn btn-secondary btn-lg flex-fill hero-action-button">
+          <span class="hero-action-icon"><i class="bi bi-file-earmark-zip"></i></span><span>Upload Event File (.zip)</span>
         </a>
-        <a href="<?= $base_url ?>/upload-data.php" class="btn btn-primary btn-lg w-100">
-          <i class="bi bi-file-earmark-text me-1"></i> Upload Meet Doc (Text)
+        <a href="<?= $base_url ?>/upload-data.php" class="btn btn-primary btn-lg flex-fill hero-action-button">
+          <span class="hero-action-icon"><i class="bi bi-file-earmark-text"></i></span><span>Upload Meet Doc (Text)</span>
+        </a>
+        <a href="<?= $base_url ?>/resources/" class="btn btn-outline-light btn-lg flex-fill hero-action-button">
+          <span class="hero-action-icon"><i class="bi bi-bookmarks"></i></span><span>Share Resource</span>
         </a>
       </div>
     </div>
