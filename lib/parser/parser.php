@@ -19,7 +19,7 @@ require_once __DIR__ . '/results_layout_adapters.php';
 
 function handle_text_upload(string $content, string $manual_start_date = '', string $manual_end_date = ''): array
 {
-  $content = trim($content);
+  $content = trim(normalize_hytek_text($content));
 
   if (empty($content)) {
     return [
@@ -98,21 +98,19 @@ function handle_text_upload(string $content, string $manual_start_date = '', str
       }
     }
 
-    // Get meet name + date range
-    if ($index === 1) {
-      if (preg_match('/^(.+?)\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4}) to (\d{1,2}\/\d{1,2}\/\d{4})$/', $line, $matches)) {
-        $metadata["meet_name"] = trim($matches[1]);
-        $metadata["meet_start_date"] = format_date_to_iso($matches[2]);
-        $metadata["meet_end_date"] = format_date_to_iso($matches[3]);
-      } elseif (preg_match('/^(.+?)\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})$/', $line, $matches)) {
-        $metadata["meet_name"] = trim($matches[1]);
-        $metadata["meet_start_date"] = format_date_to_iso($matches[2]);
-        $metadata["meet_end_date"] = format_date_to_iso($matches[2]);
-      } elseif ($line !== '') {
-        // HY-TEK 8.0 meet programs can omit dates from this title line.
-        // Preserve the meet name and request the dates from the uploader.
-        $metadata["meet_name"] = $line;
+    // Find the meet title before the document-type heading. PDF copy/paste can
+    // insert blank or other lines between the HY-TEK header and meet title.
+    if (empty($metadata['meet_start_date'])) {
+      $meet_title = parse_hytek_meet_title($line);
+      if ($meet_title !== null) {
+        $metadata = array_merge($metadata, $meet_title);
       }
+    }
+
+    // Preserve the conventional second-line title as a fallback when dates
+    // truly are absent and need to be entered manually.
+    if ($index === 1 && $line !== '' && empty($metadata['meet_name'])) {
+      $metadata["meet_name"] = rtrim($line, " \t\n\r\0\x0B\\");
     }
 
     // Detect type

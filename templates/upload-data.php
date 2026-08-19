@@ -107,8 +107,18 @@
   function documentHasHytekMeetDates(content) {
     const lines = content.replace(/\r\n?/g, '\n').split('\n');
     const headerIndex = lines.findIndex(line => /HY-TEK.*MEET MANAGER/i.test(line));
-    if (headerIndex < 0 || !lines[headerIndex + 1]) return false;
-    return /^.+?\s*-\s*\d{1,2}\/\d{1,2}\/\d{4}(?:\s+to\s+\d{1,2}\/\d{1,2}\/\d{4})?\s*$/.test(lines[headerIndex + 1].trim());
+    if (headerIndex < 0) return false;
+
+    const date = '(?:\\d{1,2}\\/\\d{1,2}\\/\\d{4}|\\d{4}-\\d{2}-\\d{2})';
+    const meetTitle = new RegExp(`^.+?\\s*-\\s*${date}(?:\\s+to\\s+${date})?\\s*\\\\?\\s*$`, 'i');
+
+    for (let index = headerIndex + 1; index < lines.length; index++) {
+      const line = lines[index].trim();
+      if (/^(?:Psych Sheet|Meet Program|Results)\b/i.test(line)) break;
+      if (meetTitle.test(line)) return true;
+    }
+
+    return false;
   }
 
   function updateMeetDatePrompt() {

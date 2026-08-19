@@ -175,6 +175,10 @@ function parse_team_line_standard($line)
 
 function parse_swimmer_line($line)
 {
+    // Meet-program exports can include an empty result column after the seed
+    // time. It is represented by underscores and is not an entry-status flag.
+    $line = preg_replace('/\s+_+$/', '', $line);
+
     // HY-TEK 8.0 can include an entry-status flag and a multiword team name.
     $parsed = parse_swimmer_full_team($line);
     if ($parsed) return $parsed;
@@ -194,6 +198,8 @@ function parse_swimmer_line($line)
 
 function parse_team_line($line)
 {
+    $line = preg_replace('/\s+_+$/', '', $line);
+
     // Try standard swimmer line format
     $parsed = parse_team_line_standard($line);
     if ($parsed) return $parsed;

@@ -23,8 +23,47 @@ function save_meta_json($all_meta)
 
 function format_date_to_iso($date)
 {
-    $dt = DateTime::createFromFormat('n/j/Y', $date);
-    return $dt ? $dt->format('Y-m-d') : null;
+    foreach (['!n/j/Y', '!Y-m-d'] as $format) {
+        $dt = DateTime::createFromFormat($format, $date);
+        $errors = DateTime::getLastErrors();
+        if ($dt && ($errors === false || (!$errors['warning_count'] && !$errors['error_count']))) {
+            return $dt->format('Y-m-d');
+        }
+    }
+
+    return null;
+}
+
+function normalize_hytek_text(string $content): string
+{
+    // PDF text extraction sometimes substitutes the Greek beta symbol for "f".
+    return str_replace('ϐ', 'f', $content);
+}
+
+function parse_hytek_meet_title(string $line): ?array
+{
+    // Some PDF copy operations append a visible backslash at each visual line end.
+    $line = rtrim($line, " \t\n\r\0\x0B\\");
+    $date_pattern = '(?:\d{1,2}/\d{1,2}/\d{4}|\d{4}-\d{2}-\d{2})';
+
+    if (preg_match('~^(.+?)\s*-\s*(' . $date_pattern . ')\s+to\s+(' . $date_pattern . ')$~i', $line, $matches)) {
+        return [
+            'meet_name' => trim($matches[1]),
+            'meet_start_date' => format_date_to_iso($matches[2]),
+            'meet_end_date' => format_date_to_iso($matches[3]),
+        ];
+    }
+
+    if (preg_match('~^(.+?)\s*-\s*(' . $date_pattern . ')$~', $line, $matches)) {
+        $date = format_date_to_iso($matches[2]);
+        return [
+            'meet_name' => trim($matches[1]),
+            'meet_start_date' => $date,
+            'meet_end_date' => $date,
+        ];
+    }
+
+    return null;
 }
 
 function slugify(string $text): string
